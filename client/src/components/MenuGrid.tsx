@@ -87,6 +87,8 @@ export default function MenuGrid({ dishes, isLoading, onReset }: MenuGridProps) 
           <button
             className={`category-chip ${selectedCategory === null ? 'active' : ''}`}
             onClick={() => setSelectedCategory(null)}
+            aria-label="Show all categories"
+            aria-pressed={selectedCategory === null}
           >
             All
           </button>
@@ -95,6 +97,8 @@ export default function MenuGrid({ dishes, isLoading, onReset }: MenuGridProps) 
               key={cat}
               className={`category-chip ${selectedCategory === cat ? 'active' : ''}`}
               onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+              aria-label={`Filter by ${cat}`}
+              aria-pressed={selectedCategory === cat}
             >
               {cat}
             </button>
@@ -109,7 +113,7 @@ export default function MenuGrid({ dishes, isLoading, onReset }: MenuGridProps) 
             <h3 className="category-title">{category}</h3>
             <div className="menu-grid">
               {dishesByCategory.get(category)?.map((dish, index) => (
-                <DishCard key={`${category}-${index}`} dish={dish} />
+                <DishCard key={`${dish.name}-${dish.price || 'no-price'}-${index}`} dish={dish} />
               ))}
             </div>
           </div>

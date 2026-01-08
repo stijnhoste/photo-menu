@@ -12,7 +12,10 @@ export default function SharePage() {
   useEffect(() => {
     if (!id) return;
 
-    fetch(`/api/share/${id}`)
+    // AbortController for cleanup on unmount
+    const controller = new AbortController();
+
+    fetch(`/api/share/${id}`, { signal: controller.signal })
       .then(res => {
         if (!res.ok) throw new Error('Menu not found');
         return res.json();
@@ -22,9 +25,13 @@ export default function SharePage() {
         setLoading(false);
       })
       .catch(err => {
+        // Ignore abort errors (component unmounted)
+        if (err.name === 'AbortError') return;
         setError(err.message);
         setLoading(false);
       });
+
+    return () => controller.abort();
   }, [id]);
 
   if (loading) {

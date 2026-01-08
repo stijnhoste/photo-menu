@@ -6,9 +6,15 @@ export default function SavedMenus() {
   const [menus, setMenus] = useState<Menu[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('savedMenus');
-    if (saved) {
-      setMenus(JSON.parse(saved));
+    try {
+      const saved = localStorage.getItem('savedMenus');
+      if (saved) {
+        setMenus(JSON.parse(saved));
+      }
+    } catch (err) {
+      // Handle corrupted localStorage data
+      console.error('Failed to load saved menus:', err);
+      localStorage.removeItem('savedMenus');
     }
   }, []);
 

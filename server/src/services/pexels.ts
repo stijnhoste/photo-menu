@@ -161,6 +161,9 @@ function buildSearchQuery(name: string, category?: string): string {
  * @param category - Optional category to improve search accuracy
  * @returns URL of the image or null if not found
  */
+// Fetch timeout in milliseconds
+const FETCH_TIMEOUT_MS = 10000;
+
 export async function searchDishImage(dishName: string, category?: string): Promise<string | null> {
   // Check cache first
   const cached = getCachedImage(dishName);
@@ -174,6 +177,10 @@ export async function searchDishImage(dishName: string, category?: string): Prom
     return null;
   }
 
+  // Create abort controller for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
   try {
     // Build smart search query based on item type
     const searchQuery = buildSearchQuery(dishName, category);
@@ -184,13 +191,17 @@ export async function searchDishImage(dishName: string, category?: string): Prom
         headers: {
           Authorization: apiKey,
         },
+        signal: controller.signal,
       }
     );
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       if (response.status === 429) {
         console.warn('Pexels rate limit exceeded');
       }
+      // Don't cache failures - allow retry later
       return null;
     }
 
@@ -200,15 +211,22 @@ export async function searchDishImage(dishName: string, category?: string): Prom
       // Use medium size for good quality without being too large
       const imageUrl = data.photos[0].src.medium;
 
-      // Cache the result
+      // Only cache successful results (not null/failures)
       cacheImage(dishName, imageUrl);
 
       return imageUrl;
     }
 
+    // No photos found - don't cache, different query might work later
     return null;
   } catch (error) {
-    console.error('Pexels API error:', error);
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.warn(`Pexels API timeout for: ${dishName}`);
+    } else {
+      console.error('Pexels API error:', error);
+    }
+    // Don't cache errors - allow retry
     return null;
   }
 }

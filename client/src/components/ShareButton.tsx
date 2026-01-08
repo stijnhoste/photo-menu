@@ -63,6 +63,7 @@ export default function ShareButton({ dishes, disabled }: ShareButtonProps) {
       onClick={handleShare}
       disabled={disabled || isSharing}
       title={copied ? 'Link copied!' : 'Share menu'}
+      aria-label={copied ? 'Link copied to clipboard' : isSharing ? 'Creating share link...' : 'Share menu'}
       style={copied ? { borderColor: '#22c55e', color: '#22c55e' } : undefined}
     >
       {copied ? (

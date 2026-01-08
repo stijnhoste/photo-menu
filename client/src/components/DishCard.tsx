@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Dish } from '../types';
 
 interface DishCardProps {
@@ -5,18 +6,16 @@ interface DishCardProps {
 }
 
 export default function DishCard({ dish }: DishCardProps) {
+  const [imageError, setImageError] = useState(false);
+
   return (
     <div className="dish-card">
-      {dish.imageUrl ? (
+      {dish.imageUrl && !imageError ? (
         <img
           src={dish.imageUrl}
           alt={dish.name}
           loading="lazy"
-          onError={(e) => {
-            // Replace with placeholder on error
-            (e.target as HTMLImageElement).style.display = 'none';
-            (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-          }}
+          onError={() => setImageError(true)}
         />
       ) : (
         <div className="dish-card-placeholder">

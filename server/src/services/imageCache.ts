@@ -2,15 +2,17 @@ import { getDatabase } from './database.js';
 
 /**
  * Normalize dish name for cache lookup.
- * - Lowercase
+ * - Lowercase (preserves accented characters like é, ü, ñ)
  * - Trim whitespace
- * - Remove special characters
+ * - Collapse multiple spaces
+ *
+ * Note: We keep accented characters to avoid collisions
+ * (e.g., "Crème Brûlée" vs "Creme Brulee" are different dishes)
  */
 function normalizeDishName(name: string): string {
   return name
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s]/g, '')
     .replace(/\s+/g, ' ');
 }
 

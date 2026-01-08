@@ -1,11 +1,15 @@
 import { Router, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { getDatabase } from '../services/database.js';
+import { checkRateLimit } from '../services/rateLimiter.js';
 
 const router = Router();
 
 // Share link expiry in days
 const SHARE_EXPIRY_DAYS = 30;
+
+// Rate limit for share creation (uses same pool as scan)
+const MAX_SHARES_PER_REQUEST = 5; // Allow more shares than scans
 
 interface Dish {
   name: string;
@@ -21,6 +25,17 @@ interface Dish {
  * Response: { shareId: string, expiresAt: string }
  */
 router.post('/', (req: Request, res: Response) => {
+  // Rate limit share creation to prevent abuse
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  const rateLimit = checkRateLimit(ip);
+  if (!rateLimit.allowed) {
+    res.status(429).json({
+      error: 'Rate limit exceeded',
+      resetAt: rateLimit.resetAt.toISOString(),
+    });
+    return;
+  }
+
   const { dishes } = req.body as { dishes?: Dish[] };
 
   if (!dishes || !Array.isArray(dishes) || dishes.length === 0) {

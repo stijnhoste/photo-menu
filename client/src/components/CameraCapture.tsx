@@ -17,14 +17,18 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
     setIsProcessing(true);
     const newPreviews: string[] = [];
 
-    for (const file of Array.from(files)) {
+    // Process images in parallel for faster loading
+    const compressionPromises = Array.from(files).map(async (file) => {
       try {
-        const compressed = await compressImage(file, 1024);
-        newPreviews.push(compressed);
+        return await compressImage(file, 1024);
       } catch (err) {
         console.error('Failed to process image:', err);
+        return null;
       }
-    }
+    });
+
+    const results = await Promise.all(compressionPromises);
+    newPreviews.push(...results.filter((r): r is string => r !== null));
 
     setPreviews(prev => [...prev, ...newPreviews]);
     setIsProcessing(false);
@@ -70,10 +74,11 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
         <>
           <div className="preview-images">
             {previews.map((preview, index) => (
-              <div key={index} style={{ position: 'relative' }}>
+              <div key={preview.substring(0, 50)} style={{ position: 'relative' }}>
                 <img src={preview} alt={`Menu page ${index + 1}`} />
                 <button
                   onClick={() => handleRemoveImage(index)}
+                  aria-label={`Remove page ${index + 1}`}
                   style={{
                     position: 'absolute',
                     top: -8,

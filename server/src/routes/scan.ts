@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { randomUUID } from 'crypto';
 import { extractMenuDishes } from '../services/claude.js';
 import { searchDishImage } from '../services/pexels.js';
 import { checkRateLimit, getRateLimitStatus } from '../services/rateLimiter.js';
@@ -32,7 +33,10 @@ router.get('/status', (req: Request, res: Response) => {
  * - event: done - Processing complete
  */
 router.post('/', async (req: Request, res: Response) => {
+  // Generate request ID for tracing/debugging
+  const requestId = randomUUID().slice(0, 8);
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  console.log(`[${requestId}] Scan request from ${ip}`);
 
   // Check rate limit
   const rateLimit = checkRateLimit(ip);
@@ -63,9 +67,17 @@ router.post('/', async (req: Request, res: Response) => {
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
 
-  // Helper to send SSE events
+  // Track connection state to stop processing if client disconnects
+  let isConnectionClosed = false;
+  res.on('close', () => {
+    isConnectionClosed = true;
+  });
+
+  // Helper to send SSE events (checks connection state)
   const sendEvent = (event: string, data: unknown) => {
-    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    if (!isConnectionClosed) {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    }
   };
 
   try {
@@ -81,8 +93,9 @@ router.post('/', async (req: Request, res: Response) => {
     let dishes;
     try {
       dishes = await extractMenuDishes(images);
+      console.log(`[${requestId}] Extracted ${dishes.length} dishes`);
     } catch (error) {
-      console.error('Menu extraction error:', error);
+      console.error(`[${requestId}] Menu extraction error:`, error);
       sendEvent('error', { message: 'Failed to analyze menu. Please try with a clearer image.' });
       res.end();
       return;
@@ -103,6 +116,12 @@ router.post('/', async (req: Request, res: Response) => {
 
     // Fetch images for each dish and stream results
     for (let i = 0; i < dishes.length; i++) {
+      // Stop processing if client disconnected
+      if (isConnectionClosed) {
+        console.log(`[${requestId}] Client disconnected, stopping at dish ${i}/${dishes.length}`);
+        return;
+      }
+
       const dish = dishes[i];
 
       try {
@@ -131,12 +150,13 @@ router.post('/', async (req: Request, res: Response) => {
 
     sendEvent('done', { totalDishes: dishes.length });
   } catch (error) {
-    console.error('Scan error:', error);
+    console.error(`[${requestId}] Scan error:`, error);
     sendEvent('error', {
-      message: error instanceof Error ? error.message : 'An unexpected error occurred',
+      message: 'An unexpected error occurred',
     });
   }
 
+  console.log(`[${requestId}] Scan complete`);
   res.end();
 });
 

@@ -1,5 +1,6 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
@@ -13,12 +14,19 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = Number(process.env.PORT) || 3005;
 
-// Middleware - allow all origins for Tailscale access
+// Security headers
+app.use(helmet());
+
+// CORS - restrict to known origins in production
 app.use(cors({
-  origin: true,
-  credentials: true
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://menu.pictures', 'https://www.menu.pictures']
+    : true,
+  credentials: false
 }));
-app.use(express.json({ limit: '50mb' }));
+
+// Reduced JSON limit to prevent DoS (5MB supports ~10 compressed menu images)
+app.use(express.json({ limit: '5mb' }));
 
 // Trust proxy for rate limiting (when behind nginx)
 app.set('trust proxy', 1);
@@ -45,6 +53,13 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.join(clientDist, 'index.html'));
   });
 }
+
+// Global error handler - must be last middleware
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('Unhandled error:', err.message);
+  // Don't leak error details to client
+  res.status(500).json({ error: 'Internal server error' });
+});
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://0.0.0.0:${PORT}`);

@@ -1,17 +1,17 @@
-name: Deploy
+name: CI & Deploy
 
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
-  deploy:
+  ci:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -23,30 +23,32 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Build check
         run: npm run build
 
-      - name: Setup SSH
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 97.74.93.177 >> ~/.ssh/known_hosts
-
-      - name: Deploy server
-        run: |
-          rsync -avz --delete server/dist/ stijn@97.74.93.177:/var/www/menu-pictures/server/dist/
-
-      - name: Deploy client
-        run: |
-          rsync -avz --delete client/dist/ stijn@97.74.93.177:/var/www/menu-pictures/client/dist/
-
-      - name: Sync package files
-        run: |
-          rsync -avz package.json package-lock.json stijn@97.74.93.177:/var/www/menu-pictures/
-
-      - name: Install dependencies and restart
-        run: |
-          ssh stijn@97.74.93.177 "cd /var/www/menu-pictures && npm ci --omit=dev && pm2 restart menu-pictures"
+  deploy:
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 97.74.93.177
+          username: stijn
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            nvm use 20
+            cd /var/www/menu-pictures
+            echo "Pulling latest code..."
+            git fetch origin main
+            git reset --hard origin/main
+            echo "Installing dependencies..."
+            npm ci
+            echo "Building..."
+            npm run build
+            echo "Restarting..."
+            pm2 restart menu-pictures
+            echo "Deployed!"

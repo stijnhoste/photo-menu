@@ -86,14 +86,27 @@ Copy `.env.example` to `.env` in server directory:
 - `DATABASE_PATH` - SQLite location (default: `./data/menus.sqlite`)
 - `RATE_LIMIT_MAX` - Scans per hour per IP (default: 10)
 
+## CI/CD
+
+**GitHub Repository:** https://github.com/stijnhoste/photo-menu
+
+**Workflows (`.github/workflows/`):**
+- `ci.yml` - Runs on push/PR: TypeScript type checking + build verification
+- `deploy.yml` - Runs on push to main: Auto-deploys to VPS via rsync + PM2 restart
+
+**Required Secret:** `SSH_PRIVATE_KEY` - Ed25519 key for `stijn@97.74.93.177`
+
 ## Deployment
 
 Deployed to VPS at 97.74.93.177 with PM2 + nginx + certbot SSL.
 
+**Auto-deploy:** Push to `main` triggers GitHub Actions deployment.
+
 ```bash
-# Deploy changes
-cd /Users/stijnhoste/Documents/GitHub/photo-menu/server && npx tsc
-rsync -avz server/dist/ stijn@97.74.93.177:/var/www/menu-pictures/server/dist/
+# Manual deploy (if needed)
+npm run build
+rsync -avz --delete server/dist/ stijn@97.74.93.177:/var/www/menu-pictures/server/dist/
+rsync -avz --delete client/dist/ stijn@97.74.93.177:/var/www/menu-pictures/client/dist/
 ssh stijn@97.74.93.177 "pm2 restart menu-pictures"
 
 # Clear image cache (forces fresh Pexels lookups)

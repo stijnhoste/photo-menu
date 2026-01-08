@@ -1,0 +1,48 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 97.74.93.177 >> ~/.ssh/known_hosts
+
+      - name: Deploy server
+        run: |
+          rsync -avz --delete server/dist/ stijn@97.74.93.177:/var/www/menu-pictures/server/dist/
+
+      - name: Deploy client
+        run: |
+          rsync -avz --delete client/dist/ stijn@97.74.93.177:/var/www/menu-pictures/client/dist/
+
+      - name: Restart application
+        run: |
+          ssh stijn@97.74.93.177 "pm2 restart menu-pictures"

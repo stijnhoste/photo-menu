@@ -20,11 +20,150 @@ interface PexelsResponse {
 }
 
 // Drink-related categories and keywords
-const DRINK_CATEGORIES = ['coffee', 'drinks', 'cocktails', 'beverages', 'smoothies', 'juices', 'tea', 'fruit smoothies', 'boozy'];
-const COFFEE_TYPES = ['espresso', 'latte', 'cappuccino', 'americano', 'macchiato', 'mocha', 'flat white', 'cortado'];
-const COCKTAIL_TYPES = ['mimosa', 'bloody mary', 'sangria', 'margarita', 'mojito', 'martini', 'cosmopolitan', 'daiquiri', 'piña colada', 'bellini', 'spritz', 'aperol', 'negroni', 'old fashioned', 'manhattan', 'whiskey sour'];
-const FRUIT_KEYWORDS = ['mango', 'raspberry', 'strawberry', 'banana', 'blueberry', 'orange', 'apple', 'peach', 'pineapple', 'coconut', 'berry', 'acai', 'kiwi', 'watermelon', 'grape', 'cherry', 'lemon', 'lime', 'passion fruit', 'papaya', 'guava'];
-const HOT_DRINKS = ['hot chocolate', 'chai', 'matcha', 'tea'];
+const DRINK_CATEGORIES = ['coffee', 'drinks', 'cocktails', 'beverages', 'smoothies', 'juices', 'tea', 'fruit smoothies', 'boozy', 'beer', 'wine', 'spirits'];
+const COFFEE_TYPES = ['espresso', 'latte', 'cappuccino', 'americano', 'macchiato', 'mocha', 'flat white', 'cortado', 'ristretto', 'affogato', 'cold brew', 'iced coffee', 'frappe'];
+const COCKTAIL_TYPES = ['mimosa', 'bloody mary', 'sangria', 'margarita', 'mojito', 'martini', 'cosmopolitan', 'daiquiri', 'piña colada', 'bellini', 'spritz', 'aperol', 'negroni', 'old fashioned', 'manhattan', 'whiskey sour', 'pisco sour', 'caipirinha', 'sazerac', 'sidecar', 'paloma', 'moscow mule', 'mai tai', 'long island', 'gin tonic', 'cuba libre', 'tequila sunrise', 'sex on the beach', 'white russian', 'black russian', 'espresso martini', 'irish coffee', 'amaretto sour', 'tom collins', 'french 75', 'mint julep', 'hurricane', 'zombie', 'planter\'s punch', 'singapore sling', 'caipiroska'];
+const FRUIT_KEYWORDS = ['mango', 'raspberry', 'strawberry', 'banana', 'blueberry', 'orange', 'apple', 'peach', 'pineapple', 'coconut', 'berry', 'acai', 'kiwi', 'watermelon', 'grape', 'cherry', 'lemon', 'lime', 'passion fruit', 'papaya', 'guava', 'pomegranate', 'dragon fruit', 'lychee', 'blackberry', 'cranberry', 'grapefruit', 'tangerine', 'melon'];
+const HOT_DRINKS = ['hot chocolate', 'chai', 'matcha', 'tea', 'green tea', 'black tea', 'herbal tea', 'oolong', 'earl grey', 'chamomile'];
+
+// Beer types
+const BEER_TYPES = ['ipa', 'stout', 'porter', 'pilsner', 'lager', 'ale', 'wheat beer', 'hefeweizen', 'pale ale', 'amber ale', 'belgian', 'sour beer', 'saison', 'kolsch', 'bock', 'dunkel', 'schwarzbier', 'craft beer', 'draft beer'];
+
+// Wine types
+const WINE_TYPES = ['champagne', 'prosecco', 'cava', 'sparkling wine', 'red wine', 'white wine', 'rosé', 'rose wine', 'cabernet', 'merlot', 'pinot noir', 'pinot grigio', 'chardonnay', 'sauvignon blanc', 'riesling', 'moscato', 'malbec', 'syrah', 'shiraz', 'zinfandel', 'bordeaux', 'burgundy', 'chianti', 'tempranillo', 'sangiovese'];
+
+// Spirits/shots
+const SPIRIT_TYPES = ['whiskey', 'whisky', 'bourbon', 'scotch', 'vodka', 'tequila', 'rum', 'gin', 'brandy', 'cognac', 'mezcal', 'sake', 'soju', 'grappa', 'absinthe', 'schnapps', 'liqueur', 'amaretto', 'kahlua', 'baileys', 'limoncello'];
+
+// Dessert keywords (to prevent false matches with coffee/cocktail terms)
+const DESSERT_KEYWORDS = ['cake', 'tiramisu', 'cheesecake', 'brownie', 'cookie', 'cupcake', 'pie', 'tart', 'mousse', 'pudding', 'ice cream', 'gelato', 'sorbet', 'crème brûlée', 'creme brulee', 'panna cotta', 'cannoli', 'éclair', 'eclair', 'macaron', 'profiterole', 'churro', 'donut', 'doughnut', 'pastry', 'croissant', 'muffin', 'scone', 'flan', 'baklava', 'sundae', 'parfait', 'truffle', 'soufflé', 'souffle', 'biscotti'];
+const DESSERT_CATEGORIES = ['dessert', 'desserts', 'sweets', 'pastries', 'bakery', 'sweet'];
+
+// Cuisine-specific patterns
+const ASIAN_DISHES = ['pad thai', 'pho', 'ramen', 'sushi', 'sashimi', 'tempura', 'teriyaki', 'yakitori', 'udon', 'soba', 'dim sum', 'dumpling', 'gyoza', 'spring roll', 'egg roll', 'fried rice', 'lo mein', 'chow mein', 'kung pao', 'general tso', 'orange chicken', 'sweet and sour', 'miso', 'edamame', 'bibimbap', 'bulgogi', 'kimchi', 'satay', 'curry', 'tikka masala', 'butter chicken', 'naan', 'samosa', 'pakora', 'vindaloo', 'korma', 'biryani', 'tom yum', 'green curry', 'red curry', 'massaman', 'banh mi', 'bao', 'laksa', 'rendang', 'nasi goreng'];
+const ITALIAN_DISHES = ['pizza', 'pasta', 'spaghetti', 'lasagna', 'lasagne', 'fettuccine', 'penne', 'ravioli', 'gnocchi', 'risotto', 'carbonara', 'bolognese', 'alfredo', 'marinara', 'pesto', 'bruschetta', 'caprese', 'carpaccio', 'arancini', 'focaccia', 'ciabatta', 'panini', 'prosciutto', 'antipasto', 'minestrone', 'osso buco', 'saltimbocca', 'piccata', 'parmigiana', 'eggplant parmesan'];
+const MEXICAN_DISHES = ['taco', 'tacos', 'burrito', 'quesadilla', 'enchilada', 'fajita', 'nachos', 'guacamole', 'salsa', 'ceviche', 'tamale', 'tamales', 'tostada', 'chimichanga', 'churro', 'elote', 'carnitas', 'al pastor', 'barbacoa', 'pozole', 'mole', 'chile relleno', 'huevos rancheros', 'chilaquiles', 'torta', 'sope', 'gordita', 'flautas'];
+const MEDITERRANEAN_DISHES = ['falafel', 'hummus', 'shawarma', 'kebab', 'gyro', 'souvlaki', 'tzatziki', 'baba ganoush', 'tabbouleh', 'fattoush', 'pita', 'dolma', 'moussaka', 'spanakopita', 'kibbeh', 'labneh'];
+const AMERICAN_DISHES = ['burger', 'hamburger', 'cheeseburger', 'hot dog', 'buffalo wings', 'mac and cheese', 'bbq ribs', 'pulled pork', 'brisket', 'fried chicken', 'chicken wings', 'chicken tenders', 'onion rings', 'french fries', 'fries', 'coleslaw', 'corn dog', 'po boy', 'philly cheesesteak', 'sloppy joe', 'meatloaf', 'clam chowder', 'gumbo', 'jambalaya'];
+const FRENCH_DISHES = ['croissant', 'baguette', 'quiche', 'ratatouille', 'coq au vin', 'beef bourguignon', 'bouillabaisse', 'cassoulet', 'confit', 'foie gras', 'escargot', 'croque monsieur', 'croque madame', 'onion soup', 'nicoise', 'tartare', 'bearnaise', 'hollandaise'];
+
+// Protein/main ingredient keywords
+const PROTEIN_KEYWORDS = ['chicken', 'beef', 'pork', 'lamb', 'steak', 'fish', 'salmon', 'tuna', 'shrimp', 'prawn', 'lobster', 'crab', 'scallop', 'oyster', 'mussel', 'clam', 'squid', 'calamari', 'octopus', 'duck', 'turkey', 'veal', 'rabbit', 'venison', 'bison', 'tofu', 'tempeh', 'seitan'];
+
+// Seafood category keywords
+const SEAFOOD_KEYWORDS = ['fish', 'salmon', 'tuna', 'cod', 'halibut', 'tilapia', 'mahi', 'swordfish', 'trout', 'bass', 'snapper', 'grouper', 'flounder', 'sole', 'mackerel', 'sardine', 'anchovy', 'shrimp', 'prawn', 'lobster', 'crab', 'scallop', 'oyster', 'mussel', 'clam', 'squid', 'calamari', 'octopus', 'ceviche', 'poke', 'sashimi', 'seafood'];
+
+// Food category-specific search modifiers
+const CATEGORY_MODIFIERS: Record<string, string> = {
+  'appetizer': 'appetizer starter',
+  'appetizers': 'appetizer starter',
+  'starter': 'appetizer starter',
+  'starters': 'appetizer starter',
+  'salad': 'fresh salad bowl',
+  'salads': 'fresh salad bowl',
+  'soup': 'soup bowl',
+  'soups': 'soup bowl',
+  'seafood': 'seafood plated restaurant',
+  'pasta': 'pasta dish italian',
+  'sandwich': 'sandwich plated',
+  'sandwiches': 'sandwich plated',
+  'burger': 'burger restaurant',
+  'burgers': 'burger restaurant',
+  'main': 'entree plated restaurant',
+  'mains': 'entree plated restaurant',
+  'entree': 'entree plated restaurant',
+  'entrees': 'entree plated restaurant',
+  'side': 'side dish',
+  'sides': 'side dish',
+  'breakfast': 'breakfast plated',
+  'brunch': 'brunch plated',
+  'lunch': 'lunch plated',
+  'dinner': 'dinner entree',
+  'vegetarian': 'vegetarian dish',
+  'vegan': 'vegan dish plated',
+  'grill': 'grilled food plated',
+  'grilled': 'grilled food plated',
+};
+
+/**
+ * Check if the item is a dessert based on name and category.
+ * This prevents false matches where "Espresso Tiramisu" would search for coffee.
+ */
+function isDessert(name: string, category?: string): boolean {
+  const lowerName = name.toLowerCase();
+  const lowerCategory = category?.toLowerCase() || '';
+
+  // Check if category is dessert-related
+  if (DESSERT_CATEGORIES.some(cat => lowerCategory.includes(cat))) {
+    return true;
+  }
+
+  // Check for dessert keywords in name
+  return DESSERT_KEYWORDS.some(dessert => lowerName.includes(dessert));
+}
+
+/**
+ * Find a matching cuisine-specific dish.
+ */
+function findCuisineDish(name: string): { dish: string; cuisine: string } | null {
+  const lowerName = name.toLowerCase();
+
+  for (const dish of ASIAN_DISHES) {
+    if (lowerName.includes(dish)) {
+      return { dish, cuisine: 'asian' };
+    }
+  }
+  for (const dish of ITALIAN_DISHES) {
+    if (lowerName.includes(dish)) {
+      return { dish, cuisine: 'italian' };
+    }
+  }
+  for (const dish of MEXICAN_DISHES) {
+    if (lowerName.includes(dish)) {
+      return { dish, cuisine: 'mexican' };
+    }
+  }
+  for (const dish of MEDITERRANEAN_DISHES) {
+    if (lowerName.includes(dish)) {
+      return { dish, cuisine: 'mediterranean' };
+    }
+  }
+  for (const dish of AMERICAN_DISHES) {
+    if (lowerName.includes(dish)) {
+      return { dish, cuisine: 'american' };
+    }
+  }
+  for (const dish of FRENCH_DISHES) {
+    if (lowerName.includes(dish)) {
+      return { dish, cuisine: 'french' };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Extract the primary protein/ingredient from a dish name.
+ */
+function extractPrimaryIngredient(name: string): string | null {
+  const lowerName = name.toLowerCase();
+
+  // Check for seafood first (more specific)
+  for (const seafood of SEAFOOD_KEYWORDS) {
+    if (lowerName.includes(seafood)) {
+      return seafood;
+    }
+  }
+
+  // Check for other proteins
+  for (const protein of PROTEIN_KEYWORDS) {
+    if (lowerName.includes(protein)) {
+      return protein;
+    }
+  }
+
+  return null;
+}
 
 /**
  * Extract the most searchable term from a creative menu name.
@@ -34,14 +173,47 @@ function extractSearchableTerms(name: string, category?: string): string | null 
   const lowerName = name.toLowerCase();
   const lowerCategory = category?.toLowerCase() || '';
 
-  // Check for cocktails first (high priority)
+  // IMPORTANT: Check if this is a dessert FIRST to prevent false matches
+  // E.g., "Espresso Tiramisu" should search for tiramisu, not espresso coffee
+  if (isDessert(name, category)) {
+    // Find the specific dessert keyword
+    for (const dessert of DESSERT_KEYWORDS) {
+      if (lowerName.includes(dessert)) {
+        return `${dessert} dessert plated`;
+      }
+    }
+    return `${name} dessert`;
+  }
+
+  // Check for cocktails (high priority for drinks)
   for (const cocktail of COCKTAIL_TYPES) {
     if (lowerName.includes(cocktail)) {
       return `${cocktail} cocktail drink glass`;
     }
   }
 
-  // Check if it's in a boozy/cocktail category
+  // Check for beer types
+  for (const beer of BEER_TYPES) {
+    if (lowerName.includes(beer)) {
+      return `${beer} beer glass`;
+    }
+  }
+
+  // Check for wine types
+  for (const wine of WINE_TYPES) {
+    if (lowerName.includes(wine)) {
+      return `${wine} wine glass`;
+    }
+  }
+
+  // Check for spirits
+  for (const spirit of SPIRIT_TYPES) {
+    if (lowerName.includes(spirit)) {
+      return `${spirit} drink glass bar`;
+    }
+  }
+
+  // Check if it's in a boozy/cocktail/beer/wine category
   if (lowerCategory.includes('boozy') || lowerCategory.includes('cocktail')) {
     // Look for specific drink mentions
     if (lowerName.includes('mimosa')) return 'mimosa cocktail champagne orange';
@@ -50,6 +222,14 @@ function extractSearchableTerms(name: string, category?: string): string | null 
     if (lowerName.includes('bellini')) return 'bellini cocktail peach';
     // Generic cocktail for boozy items
     return `${name} cocktail drink`;
+  }
+
+  if (lowerCategory.includes('beer')) {
+    return `${name} beer glass`;
+  }
+
+  if (lowerCategory.includes('wine')) {
+    return `${name} wine glass`;
   }
 
   // Check for fruit ingredients in smoothie/juice categories
@@ -86,6 +266,12 @@ function extractSearchableTerms(name: string, category?: string): string | null 
     }
   }
 
+  // Check for cuisine-specific dishes
+  const cuisineMatch = findCuisineDish(name);
+  if (cuisineMatch) {
+    return `${cuisineMatch.dish} food restaurant`;
+  }
+
   return null;
 }
 
@@ -113,6 +299,21 @@ function isDrink(name: string, category?: string): boolean {
 
   // Check for hot drinks
   if (HOT_DRINKS.some(drink => lowerName.includes(drink))) {
+    return true;
+  }
+
+  // Check for beer types
+  if (BEER_TYPES.some(beer => lowerName.includes(beer))) {
+    return true;
+  }
+
+  // Check for wine types
+  if (WINE_TYPES.some(wine => lowerName.includes(wine))) {
+    return true;
+  }
+
+  // Check for spirits
+  if (SPIRIT_TYPES.some(spirit => lowerName.includes(spirit))) {
     return true;
   }
 
@@ -149,7 +350,25 @@ function buildSearchQuery(name: string, category?: string): string {
     return `${name} drink cup`;
   }
 
-  // For food items, just use the name (simpler is often better)
+  // Try to find a primary ingredient for better food searches
+  const primaryIngredient = extractPrimaryIngredient(name);
+
+  // Check for category-specific modifiers
+  for (const [catKey, modifier] of Object.entries(CATEGORY_MODIFIERS)) {
+    if (lowerCategory.includes(catKey)) {
+      if (primaryIngredient) {
+        return `${primaryIngredient} ${modifier}`;
+      }
+      return `${name} ${modifier}`;
+    }
+  }
+
+  // For food items with a known protein/ingredient, use that for better results
+  if (primaryIngredient) {
+    return `${primaryIngredient} dish plated restaurant`;
+  }
+
+  // For food items, just use the name with food context
   return `${name} food plated`;
 }
 

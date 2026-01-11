@@ -74,7 +74,7 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
         <>
           <div className="preview-images">
             {previews.map((preview, index) => (
-              <div key={preview.substring(0, 50)} style={{ position: 'relative' }}>
+              <div key={`preview-${index}`} style={{ position: 'relative' }}>
                 <img src={preview} alt={`Menu page ${index + 1}`} />
                 <button
                   onClick={() => handleRemoveImage(index)}

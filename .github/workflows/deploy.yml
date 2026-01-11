@@ -39,6 +39,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /var/www/menu-pictures
+            PREVIOUS_COMMIT=$(git rev-parse HEAD)
+            echo "Previous commit: $PREVIOUS_COMMIT"
             echo "Pulling latest code..."
             git fetch origin main
             git reset --hard origin/main
@@ -48,4 +50,18 @@ jobs:
             npm run build
             echo "Restarting..."
             pm2 restart menu-pictures
-            echo "Deployed!"
+            echo "Waiting for app to start..."
+            sleep 5
+            echo "Verifying deployment..."
+            if curl -sf http://localhost:3005/api/health > /dev/null; then
+              echo "Health check passed!"
+              echo "Deployed successfully!"
+            else
+              echo "Health check failed! Rolling back..."
+              git reset --hard $PREVIOUS_COMMIT
+              npm ci
+              npm run build
+              pm2 restart menu-pictures
+              echo "Rolled back to $PREVIOUS_COMMIT"
+              exit 1
+            fi

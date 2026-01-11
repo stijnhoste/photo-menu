@@ -231,30 +231,3 @@ export async function searchDishImage(dishName: string, category?: string): Prom
   }
 }
 
-/**
- * Search for multiple dish images in parallel.
- * Respects rate limits by batching requests.
- *
- * @param dishNames - Array of dish names to search for
- * @returns Map of dish name to image URL
- */
-export async function searchMultipleDishImages(
-  dishNames: string[]
-): Promise<Map<string, string | null>> {
-  const results = new Map<string, string | null>();
-
-  // Process in parallel but with a reasonable concurrency limit
-  const BATCH_SIZE = 5;
-
-  for (let i = 0; i < dishNames.length; i += BATCH_SIZE) {
-    const batch = dishNames.slice(i, i + BATCH_SIZE);
-    const promises = batch.map(async (name) => {
-      const url = await searchDishImage(name);
-      results.set(name, url);
-    });
-
-    await Promise.all(promises);
-  }
-
-  return results;
-}

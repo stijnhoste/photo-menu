@@ -41,7 +41,13 @@ export default function ShareButton({ dishes, disabled }: ShareButtonProps) {
       }
 
       // Save to localStorage
-      const savedMenus = JSON.parse(localStorage.getItem('savedMenus') || '[]');
+      let savedMenus = [];
+      try {
+        savedMenus = JSON.parse(localStorage.getItem('savedMenus') || '[]');
+      } catch (err) {
+        console.error('Failed to parse saved menus:', err);
+        localStorage.removeItem('savedMenus');
+      }
       savedMenus.unshift({
         id: shareId,
         dishes,

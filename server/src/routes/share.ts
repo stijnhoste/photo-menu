@@ -8,8 +8,11 @@ const router = Router();
 // Share link expiry in days
 const SHARE_EXPIRY_DAYS = 30;
 
-// Rate limit for share creation (uses same pool as scan)
-const MAX_SHARES_PER_REQUEST = 5; // Allow more shares than scans
+// Maximum dishes per share
+const MAX_DISHES_PER_SHARE = 100;
+
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface Dish {
   name: string;
@@ -43,8 +46,8 @@ router.post('/', (req: Request, res: Response) => {
     return;
   }
 
-  if (dishes.length > 100) {
-    res.status(400).json({ error: 'Maximum 100 dishes per share' });
+  if (dishes.length > MAX_DISHES_PER_SHARE) {
+    res.status(400).json({ error: `Maximum ${MAX_DISHES_PER_SHARE} dishes per share` });
     return;
   }
 
@@ -76,7 +79,7 @@ router.post('/', (req: Request, res: Response) => {
 router.get('/:id', (req: Request, res: Response) => {
   const { id } = req.params;
 
-  if (!id || id.length !== 36) {
+  if (!id || !UUID_REGEX.test(id)) {
     res.status(400).json({ error: 'Invalid share ID' });
     return;
   }
@@ -85,8 +88,8 @@ router.get('/:id', (req: Request, res: Response) => {
     const db = getDatabase();
 
     const row = db.prepare(
-      "SELECT dishes, created_at, expires_at FROM shared_menus WHERE id = ? AND expires_at > datetime('now')"
-    ).get(id) as { dishes: string; created_at: string; expires_at: string } | undefined;
+      'SELECT dishes, created_at, expires_at FROM shared_menus WHERE id = ? AND expires_at > ?'
+    ).get(id, new Date().toISOString()) as { dishes: string; created_at: string; expires_at: string } | undefined;
 
     if (!row) {
       res.status(404).json({ error: 'Menu not found or expired' });

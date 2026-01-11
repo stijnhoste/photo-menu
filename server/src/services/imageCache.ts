@@ -45,12 +45,11 @@ export function cacheImage(dishName: string, imageUrl: string): void {
 /**
  * Get cache stats for monitoring.
  */
-export function getCacheStats(): { totalEntries: number; hitRate: number } {
+export function getCacheStats(): { totalEntries: number } {
   const db = getDatabase();
   const row = db.prepare('SELECT COUNT(*) as count FROM image_cache').get() as { count: number };
 
   return {
     totalEntries: row.count,
-    hitRate: 0 // Would need request tracking to calculate
   };
 }

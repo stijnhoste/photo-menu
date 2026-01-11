@@ -1,0 +1,13 @@
+{
+  "dirty_files": [
+    "/Users/stijnhoste/Documents/GitHub/photo-menu/client/src/components/ShareButton.tsx",
+    "/Users/stijnhoste/Documents/GitHub/photo-menu/server/src/routes/share.ts",
+    "/Users/stijnhoste/Documents/GitHub/photo-menu/client/src/components/CameraCapture.tsx",
+    "/Users/stijnhoste/Documents/GitHub/photo-menu/server/src/services/pexels.ts",
+    "/Users/stijnhoste/Documents/GitHub/photo-menu/server/src/services/imageCache.ts",
+    "/Users/stijnhoste/Documents/GitHub/photo-menu/server/src/services/claude.ts",
+    "/Users/stijnhoste/Documents/GitHub/photo-menu/server/src/routes/scan.ts"
+  ],
+  "first_dirty_at": "2026-01-11T18:56:52.092782Z",
+  "last_dirty_at": "2026-01-11T20:37:24.075629Z"
+}

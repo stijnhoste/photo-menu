@@ -16,6 +16,7 @@ export interface ExtractedDish {
   name: string;
   price: string | null;
   category: string;
+  imageSearch: string; // Search term for finding a representative image
 }
 
 /**
@@ -62,12 +63,12 @@ export async function extractMenuDishes(images: string[]): Promise<ExtractedDish
           ...imageBlocks,
           {
             type: 'text',
-            text: `Analyze this restaurant menu image(s) and extract all items with their prices and categories.
+            text: `Analyze this restaurant menu image(s) and extract all items with their prices, categories, and image search terms.
 
 Return ONLY a JSON array of objects with this exact format:
 [
-  {"name": "Dish Name", "price": "$12.99", "category": "Main Courses"},
-  {"name": "Another Dish", "price": null, "category": "Appetizers"}
+  {"name": "Dish Name", "price": "$12.99", "category": "Main Courses", "imageSearch": "grilled steak dinner plate"},
+  {"name": "Granola Colada", "price": "$8", "category": "Cocktails", "imageSearch": "pina colada coconut tropical drink"}
 ]
 
 Rules:
@@ -77,6 +78,7 @@ Rules:
 - Use these category names when applicable: "Appetizers", "Salads", "Soups", "Main Courses", "Pasta", "Pizza", "Burgers", "Sandwiches", "Seafood", "Grills", "Sides", "Desserts", "Drinks", "Cocktails", "Breakfast", "Brunch", "Kids Menu", "Specials"
 - If a category doesn't fit the above, use a short descriptive name from the menu
 - If a dish has multiple sizes/options, include the base name with the first/lowest price
+- IMPORTANT: For imageSearch, provide 3-5 descriptive words that would find a photo of this ACTUAL food/drink item. Translate creative menu names to what the item actually IS (e.g., "Bacon Old Fashioned" -> "old fashioned whiskey cocktail", "Mango Paradise" -> "mango smoothie tropical drink")
 - Return valid JSON only, no explanation or markdown
 
 Extract all items from the menu:`,
@@ -109,6 +111,7 @@ Extract all items from the menu:`,
       name: dish.name.trim(),
       price: dish.price ? String(dish.price).trim() : null,
       category: dish.category?.trim() || 'Other',
+      imageSearch: dish.imageSearch?.trim() || dish.name.trim(),
     }));
   } catch (error) {
     console.error('Failed to parse Claude response:', textContent.text);

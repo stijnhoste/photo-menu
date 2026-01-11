@@ -1,0 +1,4 @@
+client:build:cd /Users/stijnhoste/Documents/GitHub/photo-menu/client && npm run build
+client:tsc:cd /Users/stijnhoste/Documents/GitHub/photo-menu/client && npx tsc --noEmit
+server:build:cd /Users/stijnhoste/Documents/GitHub/photo-menu/server && npm run build
+server:tsc:cd /Users/stijnhoste/Documents/GitHub/photo-menu/server && npx tsc --noEmit

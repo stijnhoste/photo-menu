@@ -125,8 +125,8 @@ router.post('/', async (req: Request, res: Response) => {
       const dish = dishes[i];
 
       try {
-        // Pass category to improve image search accuracy
-        const imageUrl = await searchDishImage(dish.name, dish.category);
+        // Use AI-generated imageSearch query for better results
+        const imageUrl = await searchDishImage(dish.name, dish.imageSearch);
 
         sendEvent('dish', {
           index: i,

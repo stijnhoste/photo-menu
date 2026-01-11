@@ -157,14 +157,14 @@ function buildSearchQuery(name: string, category?: string): string {
  * Search for a food/drink image on Pexels.
  * Uses caching to avoid redundant API calls for common items.
  *
- * @param dishName - The name of the dish to search for
- * @param category - Optional category to improve search accuracy
+ * @param dishName - The name of the dish (used for caching)
+ * @param imageSearchQuery - Optional AI-generated search query (preferred over internal logic)
  * @returns URL of the image or null if not found
  */
 // Fetch timeout in milliseconds
 const FETCH_TIMEOUT_MS = 10000;
 
-export async function searchDishImage(dishName: string, category?: string): Promise<string | null> {
+export async function searchDishImage(dishName: string, imageSearchQuery?: string): Promise<string | null> {
   // Check cache first
   const cached = getCachedImage(dishName);
   if (cached) {
@@ -182,8 +182,8 @@ export async function searchDishImage(dishName: string, category?: string): Prom
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   try {
-    // Build smart search query based on item type
-    const searchQuery = buildSearchQuery(dishName, category);
+    // Use AI-provided search query if available, otherwise fall back to internal logic
+    const searchQuery = imageSearchQuery || buildSearchQuery(dishName);
 
     const response = await fetch(
       `${PEXELS_API_URL}?query=${encodeURIComponent(searchQuery)}&per_page=1&orientation=square`,

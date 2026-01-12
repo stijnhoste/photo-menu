@@ -78,7 +78,15 @@ Rules:
 - Use these category names when applicable: "Appetizers", "Salads", "Soups", "Main Courses", "Pasta", "Pizza", "Burgers", "Sandwiches", "Seafood", "Grills", "Sides", "Desserts", "Drinks", "Cocktails", "Breakfast", "Brunch", "Kids Menu", "Specials"
 - If a category doesn't fit the above, use a short descriptive name from the menu
 - If a dish has multiple sizes/options, include the base name with the first/lowest price
-- IMPORTANT: For imageSearch, provide 3-5 descriptive words that would find a photo of this ACTUAL food/drink item. Translate creative menu names to what the item actually IS (e.g., "Bacon Old Fashioned" -> "old fashioned whiskey cocktail", "Mango Paradise" -> "mango smoothie tropical drink")
+- CRITICAL: For imageSearch, describe what the item LOOKS like visually with 4-6 words. Include colors, glass types, and garnishes for drinks. Examples:
+  * "Bloody Mary Jug" -> "bloody mary red tomato celery cocktail"
+  * "Mimosa" -> "mimosa orange champagne flute brunch"
+  * "Old Fashioned" -> "old fashioned amber whiskey orange peel"
+  * "Chia Berry" -> "berry smoothie purple red glass"
+  * "Pina Colada" -> "pina colada white coconut pineapple tropical"
+  * "Mojito" -> "mojito green mint lime cocktail"
+  * "Espresso Martini" -> "espresso martini brown coffee foam"
+  * For food: "Caesar Salad" -> "caesar salad romaine parmesan croutons"
 - Return valid JSON only, no explanation or markdown
 
 Extract all items from the menu:`,

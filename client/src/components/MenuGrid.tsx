@@ -6,10 +6,11 @@ import type { Dish } from '../types';
 interface MenuGridProps {
   dishes: Dish[];
   isLoading: boolean;
+  statusMessage?: string | null;
   onReset: () => void;
 }
 
-export default function MenuGrid({ dishes, isLoading, onReset }: MenuGridProps) {
+export default function MenuGrid({ dishes, isLoading, statusMessage, onReset }: MenuGridProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -22,8 +23,10 @@ export default function MenuGrid({ dishes, isLoading, onReset }: MenuGridProps) 
   // Filter dishes by search and category
   const filteredDishes = useMemo(() => {
     return dishes.filter(dish => {
-      const matchesSearch = searchQuery === '' ||
-        dish.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = query === '' ||
+        dish.name.toLowerCase().includes(query) ||
+        (dish.originalName?.toLowerCase().includes(query) ?? false);
       const matchesCategory = selectedCategory === null ||
         dish.category === selectedCategory;
       return matchesSearch && matchesCategory;
@@ -120,11 +123,14 @@ export default function MenuGrid({ dishes, isLoading, onReset }: MenuGridProps) 
         ))}
 
         {isLoading && (
-          <div className="menu-grid">
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-          </div>
+          <>
+            {statusMessage && <p className="status-message">{statusMessage}</p>}
+            <div className="menu-grid">
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </div>
+          </>
         )}
 
         {!isLoading && filteredDishes.length === 0 && dishes.length > 0 && (

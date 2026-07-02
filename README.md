@@ -7,7 +7,7 @@ A PWA that photographs restaurant menus, extracts dish information using AI, and
 ## Features
 
 - **Menu Scanning** - Capture or upload menu photos (supports multiple images)
-- **AI Extraction** - Claude Haiku 4.5 extracts dish names, prices, and categories
+- **AI Extraction** - Claude Opus 4.8 extracts dish names, prices, and categories
 - **Visual Display** - Pexels API provides appetizing images for each dish
 - **Smart Search** - Filter dishes by name or category
 - **Shareable Links** - Create links to share scanned menus (30-day expiry)
@@ -18,7 +18,7 @@ A PWA that photographs restaurant menus, extracts dish information using AI, and
 - **Client:** React 19, Vite, TypeScript
 - **Server:** Express 5, TypeScript
 - **Database:** SQLite (better-sqlite3)
-- **AI:** Anthropic Claude Haiku 4.5
+- **AI:** Anthropic Claude Opus 4.8
 - **Images:** Pexels API
 
 ## Getting Started
@@ -77,7 +77,7 @@ npm run start
 
 1. User captures or uploads menu photo(s)
 2. Images are compressed client-side (max 1024px)
-3. Server sends images to Claude Haiku 4.5 for extraction
+3. Server sends images to Claude Opus 4.8 for extraction
 4. Each dish gets matched with a Pexels image (cached in SQLite)
 5. Results stream back via SSE for progressive display
 

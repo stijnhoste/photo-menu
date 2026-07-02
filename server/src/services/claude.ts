@@ -1,9 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
 
+// Latest Claude model — used for menu extraction, translation, and the menu chat
+export const CLAUDE_MODEL = 'claude-opus-4-8';
+
 // Lazy initialization to ensure dotenv has loaded
 let anthropic: Anthropic | null = null;
 
-function getClient(): Anthropic {
+export function getClient(): Anthropic {
   if (!anthropic) {
     anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
@@ -20,7 +23,7 @@ export interface ExtractedDish {
 }
 
 /**
- * Extract dish names and prices from menu image(s) using Claude Haiku 4.5.
+ * Extract dish names and prices from menu image(s) using Claude Opus 4.8.
  *
  * @param images - Array of base64-encoded images (with or without data URL prefix)
  * @returns Array of extracted dishes with names and prices
@@ -54,8 +57,8 @@ export async function extractMenuDishes(images: string[]): Promise<ExtractedDish
   });
 
   const response = await getClient().messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 4096,
+    model: CLAUDE_MODEL,
+    max_tokens: 8192,
     messages: [
       {
         role: 'user',
@@ -125,4 +128,63 @@ Extract all items from the menu:`,
     console.error('Failed to parse Claude response:', textContent.text);
     throw new Error('Failed to parse menu extraction response');
   }
+}
+
+export interface TranslatableDish {
+  name: string;
+  category: string;
+}
+
+/**
+ * Translate dish names and categories into any target language using Claude Opus 4.8.
+ * Returns an array in the same order and of the same length as the input.
+ */
+export async function translateDishes(
+  dishes: TranslatableDish[],
+  targetLanguage: string
+): Promise<TranslatableDish[]> {
+  const response = await getClient().messages.create({
+    model: CLAUDE_MODEL,
+    max_tokens: 8192,
+    messages: [
+      {
+        role: 'user',
+        content: `Translate this restaurant menu into ${targetLanguage}.
+
+Input (JSON array of menu items):
+${JSON.stringify(dishes)}
+
+Rules:
+- Return ONLY a JSON array with the SAME length and order as the input
+- Each object must have "name" and "category" translated into ${targetLanguage}
+- Keep proper nouns and brand names (e.g. "Coca-Cola", "Mojito") recognizable — translate descriptive parts only
+- Use the natural culinary vocabulary of ${targetLanguage}, not literal word-for-word translation
+- Translate identical categories consistently
+- Return valid JSON only, no explanation or markdown`,
+      },
+    ],
+  });
+
+  const textContent = response.content.find((block) => block.type === 'text');
+  if (!textContent || textContent.type !== 'text') {
+    throw new Error('No text response from Claude');
+  }
+
+  let jsonText = textContent.text.trim();
+  if (jsonText.startsWith('```')) {
+    jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```$/g, '').trim();
+  }
+
+  const translated = JSON.parse(jsonText) as TranslatableDish[];
+  if (!Array.isArray(translated) || translated.length !== dishes.length) {
+    throw new Error('Translation returned an unexpected number of items');
+  }
+
+  return translated.map((item, i) => ({
+    name: typeof item?.name === 'string' && item.name.trim() ? item.name.trim() : dishes[i].name,
+    category:
+      typeof item?.category === 'string' && item.category.trim()
+        ? item.category.trim()
+        : dishes[i].category,
+  }));
 }

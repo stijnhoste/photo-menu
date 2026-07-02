@@ -3,6 +3,13 @@ export interface Dish {
   price: string | null;
   imageUrl: string | null;
   category: string;
+  /** Set when the menu is being viewed in translation */
+  originalName?: string;
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
 }
 
 export interface Menu {

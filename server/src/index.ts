@@ -7,6 +7,8 @@ import dotenv from 'dotenv';
 import { initDatabase } from './services/database.js';
 import scanRouter from './routes/scan.js';
 import shareRouter from './routes/share.js';
+import chatRouter from './routes/chat.js';
+import translateRouter from './routes/translate.js';
 
 dotenv.config();
 
@@ -37,6 +39,8 @@ initDatabase();
 // API routes
 app.use('/api/scan', scanRouter);
 app.use('/api/share', shareRouter);
+app.use('/api/chat', chatRouter);
+app.use('/api/translate', translateRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {

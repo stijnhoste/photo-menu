@@ -26,6 +26,9 @@ export default function DishCard({ dish }: DishCardProps) {
       )}
       <div className="dish-card-content">
         <h3>{dish.name}</h3>
+        {dish.originalName && dish.originalName !== dish.name && (
+          <p className="dish-original-name">{dish.originalName}</p>
+        )}
         {dish.price && <span className="price">{dish.price}</span>}
       </div>
     </div>

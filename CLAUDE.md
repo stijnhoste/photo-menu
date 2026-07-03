@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**menu.pictures** - A PWA that photographs restaurant menus, extracts dish information using Claude Haiku 4.5, and displays dish images from Pexels API.
+**menu.pictures** - A PWA that photographs restaurant menus, extracts dish information using Claude Opus 4.8, and displays dish images from Pexels API.
 
-**Tech Stack:** React 19 + Vite (client), Express 5 + TypeScript (server), SQLite via better-sqlite3, Anthropic Claude Haiku 4.5, Pexels API
+**Tech Stack:** React 19 + Vite (client), Express 5 + TypeScript (server), SQLite via better-sqlite3, Anthropic Claude Opus 4.8, Pexels API
 
 **Live URL:** https://menu.pictures
 
@@ -35,7 +35,7 @@ npm run clean         # Removes dist folders
 ### Data Flow
 1. User captures/uploads menu image(s) → client compresses to max 1024px
 2. `POST /api/scan` sends base64 images → server rate-limits by IP
-3. Server sends images to Claude Haiku 4.5 → extracts `{name, price, category}[]`
+3. Server sends images to Claude Opus 4.8 → extracts `{name, price, category}[]`
 4. For each dish: check image cache → query Pexels if miss → cache result
 5. Results stream back via SSE (`status`, `dish`, `done` events)
 6. Client displays cards progressively as dishes arrive
@@ -43,7 +43,7 @@ npm run clean         # Removes dist folders
 ### Key Files
 
 **Server Services (`server/src/services/`):**
-- `claude.ts` - Menu extraction with Claude Haiku 4.5, returns `ExtractedDish[]`
+- `claude.ts` - Menu extraction with Claude Opus 4.8, returns `ExtractedDish[]`
 - `pexels.ts` - Smart image search with category-aware queries (drinks vs food detection)
 - `imageCache.ts` - SQLite cache for dish name → image URL mappings
 - `rateLimiter.ts` - IP-based rate limiting (default 10 scans/hour)
@@ -54,12 +54,16 @@ npm run clean         # Removes dist folders
 - `GET /api/scan/status` - Rate limit info for current IP
 - `POST /api/share` - Create shareable menu link (30-day expiry)
 - `GET /api/share/:id` - Retrieve shared menu
+- `POST /api/chat` - SSE streaming menu assistant chat (in-memory rate limited)
+- `POST /api/translate` - Translate the extracted menu into any language (in-memory rate limited)
 
 **Client Components (`client/src/components/`):**
 - `CameraCapture.tsx` - Image capture/upload with compression
 - `MenuGrid.tsx` - Dish grid with search and category filtering
-- `DishCard.tsx` - Individual dish display
+- `DishCard.tsx` - Individual dish display (shows original name when translated)
 - `SharePage.tsx` - Shared menu viewer (`/menu/:id`)
+- `LanguagePicker.tsx` - Translate the menu into any language (quick picks + free text)
+- `ChatWidget.tsx` - Voice-enabled menu assistant (Web Speech API mic input + spoken replies)
 
 ### Pexels Image Search Logic
 
@@ -85,6 +89,8 @@ Copy `.env.example` to `.env` in server directory:
 - `PEXELS_API_KEY` - Required for image search
 - `DATABASE_PATH` - SQLite location (default: `./data/menus.sqlite`)
 - `RATE_LIMIT_MAX` - Scans per hour per IP (default: 10)
+- `CHAT_RATE_LIMIT_MAX` - Chat messages per hour per IP (default: 60)
+- `TRANSLATE_RATE_LIMIT_MAX` - Translations per hour per IP (default: 20)
 
 ## CI/CD
 

@@ -1,16 +1,17 @@
 import { useState, useMemo } from 'react';
 import DishCard from './DishCard';
 import ShareButton from './ShareButton';
-import type { Dish } from '../types';
+import type { Dish, ScanProgress } from '../types';
 
 interface MenuGridProps {
   dishes: Dish[];
   isLoading: boolean;
   statusMessage?: string | null;
+  progress?: ScanProgress | null;
   onReset: () => void;
 }
 
-export default function MenuGrid({ dishes, isLoading, statusMessage, onReset }: MenuGridProps) {
+export default function MenuGrid({ dishes, isLoading, statusMessage, progress, onReset }: MenuGridProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -124,7 +125,12 @@ export default function MenuGrid({ dishes, isLoading, statusMessage, onReset }: 
 
         {isLoading && (
           <>
-            {statusMessage && <p className="status-message">{statusMessage}</p>}
+            {statusMessage && (
+              <p className="status-message">
+                {statusMessage}
+                {progress?.total ? ` ${progress.completed}/${progress.total}` : ''}
+              </p>
+            )}
             <div className="menu-grid">
               <SkeletonCard />
               <SkeletonCard />

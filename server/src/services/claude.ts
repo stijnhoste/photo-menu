@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { extractedDishSchema, type ExtractedDish } from '../domain/menu.js';
+import { extractedMenuSchema, type ExtractedMenu } from '../domain/menu.js';
 
 // Latest Claude model — used for menu extraction, translation, and the menu chat
 export const CLAUDE_MODEL = 'claude-opus-4-8';
@@ -22,7 +22,7 @@ export function getClient(): Anthropic {
  * @param images - Array of base64-encoded images (with or without data URL prefix)
  * @returns Array of extracted dishes with names and prices
  */
-export async function extractMenuDishes(images: string[]): Promise<ExtractedDish[]> {
+export async function extractMenuDishes(images: string[]): Promise<ExtractedMenu> {
   // Prepare image content blocks
   const imageBlocks: Anthropic.ImageBlockParam[] = images.map((image) => {
     // Extract base64 data if it has a data URL prefix
@@ -60,21 +60,45 @@ export async function extractMenuDishes(images: string[]): Promise<ExtractedDish
           ...imageBlocks,
           {
             type: 'text',
-            text: `Analyze this restaurant menu image(s) and extract all items with their prices, categories, and image search terms.
+            text: `Analyze these restaurant menu images and extract the menu identity and every item in source order.
 
-Return ONLY a JSON array of objects with this exact format:
-[
-  {"name": "Dish Name", "price": "$12.99", "category": "Main Courses", "imageSearch": "grilled steak dinner plate"},
-  {"name": "Granola Colada", "price": "$8", "category": "Cocktails", "imageSearch": "pina colada coconut tropical drink"}
-]
+Return ONLY one JSON object with this exact structure:
+{
+  "restaurantName": "Restaurant name or null",
+  "menuName": "Dinner Menu or null",
+  "currency": "USD or null",
+  "sourceLanguage": "English or null",
+  "dishes": [
+    {
+      "name": "Dish Name",
+      "description": "Exact printed description or null",
+      "price": "$12.99",
+      "priceValue": 12.99,
+      "category": "Main Courses",
+      "categoryOrder": 2,
+      "itemOrder": 8,
+      "imageSearch": "grilled steak dinner plate",
+      "ingredients": ["beef", "peppercorn sauce"],
+      "allergens": ["milk"],
+      "dietaryTags": ["gluten-free"]
+    }
+  ]
+}
 
 Rules:
 - Extract the EXACT dish name as written on the menu
+- Preserve printed descriptions; do not invent a description
 - Include the price with currency symbol if visible, or null if not shown
+- Set priceValue to the numeric base/lowest price without a currency symbol, or null
 - Assign each item to a category based on the menu section or infer from the dish type
+- Preserve source order using zero-based categoryOrder and itemOrder values
 - Use these category names when applicable: "Appetizers", "Salads", "Soups", "Main Courses", "Pasta", "Pizza", "Burgers", "Sandwiches", "Seafood", "Grills", "Sides", "Desserts", "Drinks", "Cocktails", "Breakfast", "Brunch", "Kids Menu", "Specials"
 - If a category doesn't fit the above, use a short descriptive name from the menu
 - If a dish has multiple sizes/options, include the base name with the first/lowest price
+- ingredients must contain only ingredients printed on the menu, never guessed ingredients
+- allergens must contain only allergens explicitly printed or directly evidenced by printed ingredients; otherwise use []
+- dietaryTags may contain only: vegetarian, vegan, gluten-free, dairy-free, nut-free, halal, kosher, spicy
+- Do not infer safety-sensitive dietary tags from general culinary knowledge; use [] when uncertain
 - CRITICAL: For imageSearch, describe what the item LOOKS like visually with 4-6 words. Include colors, glass types, and garnishes for drinks. Examples:
   * "Bloody Mary Jug" -> "bloody mary red tomato celery cocktail"
   * "Mimosa" -> "mimosa orange champagne flute brunch"
@@ -107,17 +131,7 @@ Extract all items from the menu:`,
       jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```$/g, '').trim();
     }
 
-    const dishes = JSON.parse(jsonText) as unknown;
-    if (!Array.isArray(dishes)) {
-      throw new Error('Menu extraction response was not an array');
-    }
-
-    return dishes.map((dish, index) => {
-      const candidate = dish && typeof dish === 'object'
-        ? { itemOrder: index, categoryOrder: 0, ...dish }
-        : dish;
-      return extractedDishSchema.parse(candidate);
-    });
+    return extractedMenuSchema.parse(JSON.parse(jsonText) as unknown);
   } catch (error) {
     console.error('Failed to parse Claude response:', textContent.text);
     throw new Error('Failed to parse menu extraction response');

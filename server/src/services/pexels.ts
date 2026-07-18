@@ -164,7 +164,11 @@ function buildSearchQuery(name: string, category?: string): string {
 // Fetch timeout in milliseconds
 const FETCH_TIMEOUT_MS = 10000;
 
-export async function searchDishImage(dishName: string, imageSearchQuery?: string): Promise<string | null> {
+export async function searchDishImage(
+  dishName: string,
+  imageSearchQuery?: string,
+  requestSignal?: AbortSignal
+): Promise<string | null> {
   // Check cache first
   const cached = getCachedImage(dishName);
   if (cached) {
@@ -178,8 +182,10 @@ export async function searchDishImage(dishName: string, imageSearchQuery?: strin
   }
 
   // Create abort controller for timeout
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const timeoutSignal = AbortSignal.timeout(FETCH_TIMEOUT_MS);
+  const signal = requestSignal
+    ? AbortSignal.any([requestSignal, timeoutSignal])
+    : timeoutSignal;
 
   try {
     // Use AI-provided search query if available, otherwise fall back to internal logic
@@ -191,11 +197,9 @@ export async function searchDishImage(dishName: string, imageSearchQuery?: strin
         headers: {
           Authorization: apiKey,
         },
-        signal: controller.signal,
+        signal,
       }
     );
-
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -220,7 +224,6 @@ export async function searchDishImage(dishName: string, imageSearchQuery?: strin
     // No photos found - don't cache, different query might work later
     return null;
   } catch (error) {
-    clearTimeout(timeoutId);
     if (error instanceof Error && error.name === 'AbortError') {
       console.warn(`Pexels API timeout for: ${dishName}`);
     } else {
@@ -230,4 +233,3 @@ export async function searchDishImage(dishName: string, imageSearchQuery?: strin
     return null;
   }
 }
-

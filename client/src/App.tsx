@@ -6,8 +6,16 @@ import SharePage from './components/SharePage';
 import SavedMenus from './components/SavedMenus';
 import LanguagePicker from './components/LanguagePicker';
 import ChatWidget from './components/ChatWidget';
+import MenuReview from './components/MenuReview';
 import { readSSE } from './utils/sse';
-import type { Dish } from './types';
+import type { Dish, MenuMetadata, ScanProgress } from './types';
+
+const EMPTY_METADATA: MenuMetadata = {
+  restaurantName: null,
+  menuName: null,
+  currency: null,
+  sourceLanguage: null
+};
 
 function HomePage() {
   const [dishes, setDishes] = useState<Dish[]>([]);
@@ -15,6 +23,9 @@ function HomePage() {
   const [language, setLanguage] = useState<string | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [metadata, setMetadata] = useState<MenuMetadata>(EMPTY_METADATA);
+  const [progress, setProgress] = useState<ScanProgress | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,6 +36,9 @@ function HomePage() {
     setDishes([]);
     setTranslatedDishes(null);
     setLanguage(null);
+    setMetadata(EMPTY_METADATA);
+    setProgress(null);
+    setIsReviewing(false);
     setError(null);
     setStatusMessage('Analyzing menu…');
 
@@ -48,8 +62,14 @@ function HomePage() {
         if (event === 'dish') {
           const dish = data as Dish;
           if (dish && typeof dish.name === 'string') {
-            setDishes(prev => [...prev, dish]);
+            setDishes(prev => [...prev, dish].sort((a, b) => a.itemOrder - b.itemOrder));
           }
+        } else if (event === 'metadata') {
+          setMetadata(data as MenuMetadata);
+        } else if (event === 'progress') {
+          setProgress(data as ScanProgress);
+        } else if (event === 'done') {
+          setIsReviewing(true);
         } else if (event === 'status') {
           const status = data as { message?: string };
           if (status.message) setStatusMessage(status.message);
@@ -117,6 +137,9 @@ function HomePage() {
     setDishes([]);
     setTranslatedDishes(null);
     setLanguage(null);
+    setMetadata(EMPTY_METADATA);
+    setProgress(null);
+    setIsReviewing(false);
     setError(null);
   };
 
@@ -134,6 +157,15 @@ function HomePage() {
       <main>
         {!showGrid ? (
           <CameraCapture onCapture={handleScan} />
+        ) : isReviewing ? (
+          <MenuReview
+            dishes={dishes}
+            metadata={metadata}
+            onDishesChange={setDishes}
+            onMetadataChange={setMetadata}
+            onConfirm={() => setIsReviewing(false)}
+            onRescan={handleReset}
+          />
         ) : (
           <>
             <div className="toolbar">
@@ -148,6 +180,7 @@ function HomePage() {
               dishes={displayDishes}
               isLoading={isScanning}
               statusMessage={statusMessage}
+              progress={progress}
               onReset={handleReset}
             />
           </>

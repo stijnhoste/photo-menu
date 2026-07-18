@@ -3,6 +3,12 @@ import { randomUUID } from 'crypto';
 import { extractMenuDishes } from '../services/claude.js';
 import { searchDishImage } from '../services/pexels.js';
 import { checkRateLimit, getRateLimitStatus } from '../services/rateLimiter.js';
+import { mapWithConcurrency } from '../utils/concurrency.js';
+
+const IMAGE_CONCURRENCY = Math.max(
+  1,
+  Math.min(8, Number(process.env.IMAGE_FETCH_CONCURRENCY) || 4)
+);
 
 const router = Router();
 
@@ -69,8 +75,10 @@ router.post('/', async (req: Request, res: Response) => {
 
   // Track connection state to stop processing if client disconnects
   let isConnectionClosed = false;
+  const requestController = new AbortController();
   res.on('close', () => {
     isConnectionClosed = true;
+    requestController.abort();
   });
 
   // Helper to send SSE events (checks connection state)
@@ -90,9 +98,10 @@ router.post('/', async (req: Request, res: Response) => {
     // Extract dishes from menu images using Claude
     sendEvent('status', { message: 'Analyzing menu...', phase: 'extraction' });
 
-    let dishes;
+    let extractedMenu;
     try {
-      dishes = await extractMenuDishes(images);
+      extractedMenu = await extractMenuDishes(images);
+      const { dishes } = extractedMenu;
       console.log(`[${requestId}] Extracted ${dishes.length} dishes`);
     } catch (error) {
       console.error(`[${requestId}] Menu extraction error:`, error);
@@ -101,12 +110,8 @@ router.post('/', async (req: Request, res: Response) => {
       return;
     }
 
-    if (dishes.length === 0) {
-      sendEvent('status', { message: 'No dishes found in the menu', phase: 'complete' });
-      sendEvent('done', { totalDishes: 0 });
-      res.end();
-      return;
-    }
+    const { dishes, ...metadata } = extractedMenu;
+    sendEvent('metadata', metadata);
 
     sendEvent('status', {
       message: `Found ${dishes.length} dishes. Fetching images...`,
@@ -114,39 +119,41 @@ router.post('/', async (req: Request, res: Response) => {
       totalDishes: dishes.length,
     });
 
-    // Fetch images for each dish and stream results
-    for (let i = 0; i < dishes.length; i++) {
-      // Stop processing if client disconnected
-      if (isConnectionClosed) {
-        console.log(`[${requestId}] Client disconnected, stopping at dish ${i}/${dishes.length}`);
-        return;
-      }
-
-      const dish = dishes[i];
-
+    let completed = 0;
+    await mapWithConcurrency(dishes, IMAGE_CONCURRENCY, async (dish, i) => {
+      if (isConnectionClosed) return;
       try {
-        // Use AI-generated imageSearch query for better results
-        const imageUrl = await searchDishImage(dish.name, dish.imageSearch);
+        const imageUrl = await searchDishImage(
+          dish.name,
+          dish.imageSearch,
+          requestController.signal
+        );
 
         sendEvent('dish', {
+          id: randomUUID(),
           index: i,
-          name: dish.name,
-          price: dish.price,
-          category: dish.category,
+          ...dish,
           imageUrl: imageUrl || null,
+          imageIsRepresentative: true
         });
       } catch (error) {
         console.error(`Failed to fetch image for ${dish.name}:`, error);
-        // Still send the dish, just without an image
         sendEvent('dish', {
+          id: randomUUID(),
           index: i,
-          name: dish.name,
-          price: dish.price,
-          category: dish.category,
+          ...dish,
           imageUrl: null,
+          imageIsRepresentative: true
+        });
+      } finally {
+        completed += 1;
+        sendEvent('progress', {
+          phase: 'images',
+          completed,
+          total: dishes.length
         });
       }
-    }
+    });
 
     sendEvent('done', { totalDishes: dishes.length });
   } catch (error) {

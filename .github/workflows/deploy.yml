@@ -47,33 +47,48 @@ jobs:
           host: 97.74.93.177
           username: stijn
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 15m
           script: |
+            set -Eeuo pipefail
             cd /var/www/menu-pictures
-            PREVIOUS_COMMIT=$(git rev-parse HEAD)
-            echo "Previous commit: $PREVIOUS_COMMIT"
+            exec 9>/tmp/menu-pictures-deploy.lock
+            flock -w 300 9
+
             echo "Pulling latest code..."
             git fetch origin main
             git reset --hard origin/main
+
             echo "Installing dependencies..."
-            npm ci
+            if ! npm ci; then
+              echo "Dependency tree is damaged; quarantining and reinstalling..."
+              rm -rf /var/www/menu-pictures/node_modules.corrupt
+              if [ -d /var/www/menu-pictures/node_modules ]; then
+                mv /var/www/menu-pictures/node_modules /var/www/menu-pictures/node_modules.corrupt
+              fi
+              npm ci
+              rm -rf /var/www/menu-pictures/node_modules.corrupt
+            fi
+
             echo "Building..."
             npm run build
+
             echo "Restarting..."
             pm2 startOrReload ecosystem.config.cjs --only menu-pictures
-            echo "Waiting for app to start..."
-            sleep 5
+
             echo "Verifying deployment..."
-            if curl -sf http://localhost:3005/api/health > /dev/null \
-              && curl -sf http://localhost:3005/ | grep -q '<title>menu.pictures</title>'; then
-              pm2 save
-              echo "Health check passed!"
-              echo "Deployed successfully!"
-            else
-              echo "Health check failed! Rolling back..."
-              git reset --hard $PREVIOUS_COMMIT
-              npm ci
-              npm run build
-              NODE_ENV=production pm2 restart menu-pictures --update-env
-              echo "Rolled back to $PREVIOUS_COMMIT"
+            healthy=false
+            for attempt in $(seq 1 20); do
+              if curl -sf http://localhost:3005/api/health > /dev/null \
+                && curl -sf http://localhost:3005/ | grep -q '<title>menu.pictures</title>'; then
+                healthy=true
+                break
+              fi
+              sleep 2
+            done
+            if [ "$healthy" != true ]; then
+              pm2 logs menu-pictures --lines 80 --nostream || true
               exit 1
             fi
+
+            pm2 save
+            echo "Health check passed. Deployed successfully."

@@ -90,7 +90,11 @@ function HomePage() {
       });
     } catch (err) {
       if (!(err instanceof DOMException && err.name === 'AbortError')) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError(
+          err instanceof TypeError
+            ? 'The scan connection was interrupted. Please check your connection and try again.'
+            : err instanceof Error ? err.message : 'An error occurred'
+        );
       }
     } finally {
       if (scanControllerRef.current === controller) scanControllerRef.current = null;

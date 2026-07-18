@@ -4,6 +4,7 @@ import { extractMenuDishes } from '../services/claude.js';
 import { searchDishImage } from '../services/pexels.js';
 import { checkRateLimit, getRateLimitStatus } from '../services/rateLimiter.js';
 import { mapWithConcurrency } from '../utils/concurrency.js';
+import { startSseHeartbeat } from '../utils/sseHeartbeat.js';
 import { createMemoryLimiter } from '../services/memoryRateLimiter.js';
 import { z } from 'zod';
 
@@ -101,11 +102,19 @@ router.post('/', async (req: Request, res: Response) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+  res.flushHeaders();
 
   // Track connection state to stop processing if client disconnects
   let isConnectionClosed = false;
   const requestController = new AbortController();
+  // Claude can take longer than the reverse proxy's idle timeout for dense
+  // menus. SSE comments are ignored by clients but keep the connection active.
+  const stopHeartbeat = startSseHeartbeat((chunk) => {
+    if (!isConnectionClosed) res.write(chunk);
+  });
+  res.on('finish', stopHeartbeat);
   res.on('close', () => {
+    stopHeartbeat();
     isConnectionClosed = true;
     requestController.abort();
   });

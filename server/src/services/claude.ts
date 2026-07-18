@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { extractedDishSchema, type ExtractedDish } from '../domain/menu.js';
 
 // Latest Claude model — used for menu extraction, translation, and the menu chat
 export const CLAUDE_MODEL = 'claude-opus-4-8';
@@ -13,13 +14,6 @@ export function getClient(): Anthropic {
     });
   }
   return anthropic;
-}
-
-export interface ExtractedDish {
-  name: string;
-  price: string | null;
-  category: string;
-  imageSearch: string; // Search term for finding a representative image
 }
 
 /**
@@ -113,17 +107,17 @@ Extract all items from the menu:`,
       jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```$/g, '').trim();
     }
 
-    const dishes = JSON.parse(jsonText) as ExtractedDish[];
+    const dishes = JSON.parse(jsonText) as unknown;
+    if (!Array.isArray(dishes)) {
+      throw new Error('Menu extraction response was not an array');
+    }
 
-    // Validate and clean the response
-    return dishes.filter(
-      (dish) => dish && typeof dish.name === 'string' && dish.name.trim().length > 0
-    ).map((dish) => ({
-      name: dish.name.trim(),
-      price: dish.price ? String(dish.price).trim() : null,
-      category: dish.category?.trim() || 'Other',
-      imageSearch: dish.imageSearch?.trim() || dish.name.trim(),
-    }));
+    return dishes.map((dish, index) => {
+      const candidate = dish && typeof dish === 'object'
+        ? { itemOrder: index, categoryOrder: 0, ...dish }
+        : dish;
+      return extractedDishSchema.parse(candidate);
+    });
   } catch (error) {
     console.error('Failed to parse Claude response:', textContent.text);
     throw new Error('Failed to parse menu extraction response');

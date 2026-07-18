@@ -1,5 +1,9 @@
 name: CI & Deploy
 
+concurrency:
+  group: menu-pictures-production
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]

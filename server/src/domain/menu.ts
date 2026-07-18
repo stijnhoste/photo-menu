@@ -69,3 +69,38 @@ export type MenuMetadata = z.infer<typeof menuMetadataSchema>;
 export type MenuDocument = z.infer<typeof menuDocumentSchema>;
 export type ExtractedDish = z.infer<typeof extractedDishSchema>;
 export type ExtractedMenu = z.infer<typeof extractedMenuSchema>;
+
+export function parseExtractedMenu(input: unknown): ExtractedMenu {
+  const container = Array.isArray(input)
+    ? { restaurantName: null, menuName: null, currency: null, sourceLanguage: null, dishes: input }
+    : input;
+  if (!container || typeof container !== 'object') return extractedMenuSchema.parse(container);
+
+  const raw = container as Record<string, unknown>;
+  const dishes = Array.isArray(raw.dishes) ? raw.dishes.map((value, index) => {
+    if (!value || typeof value !== 'object') return value;
+    const dish = value as Record<string, unknown>;
+    const name = typeof dish.name === 'string' ? dish.name : '';
+    const rawPriceValue = dish.priceValue;
+    const priceValue = typeof rawPriceValue === 'string'
+      ? Number.parseFloat(rawPriceValue.replace(',', '.').replace(/[^0-9.-]/g, ''))
+      : rawPriceValue;
+    const dietaryTags = Array.isArray(dish.dietaryTags)
+      ? dish.dietaryTags
+          .map(tag => String(tag).trim().toLowerCase())
+          .filter(tag => dietaryTagSchema.safeParse(tag).success)
+      : [];
+    return {
+      ...dish,
+      name,
+      imageSearch: typeof dish.imageSearch === 'string' && dish.imageSearch.trim() ? dish.imageSearch : `${name} plated dish`,
+      category: typeof dish.category === 'string' && dish.category.trim() ? dish.category : 'Other',
+      categoryOrder: typeof dish.categoryOrder === 'number' ? dish.categoryOrder : 0,
+      itemOrder: typeof dish.itemOrder === 'number' ? dish.itemOrder : index,
+      priceValue: typeof priceValue === 'number' && Number.isFinite(priceValue) ? priceValue : null,
+      dietaryTags
+    };
+  }) : raw.dishes;
+
+  return extractedMenuSchema.parse({ ...raw, dishes });
+}

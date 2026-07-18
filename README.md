@@ -1,4 +1,4 @@
-# menu.pictures
+# menu.pictures / menu.photos
 
 A PWA that photographs restaurant menus, extracts dish information using AI, and displays appetizing dish images.
 
@@ -7,10 +7,13 @@ A PWA that photographs restaurant menus, extracts dish information using AI, and
 ## Features
 
 - **Menu Scanning** - Capture or upload menu photos (supports multiple images)
+- **Review & Correct** - Fix extracted names, descriptions, prices, categories, ingredients, and indicators before publishing
 - **AI Extraction** - Claude Opus 4.8 extracts dish names, prices, and categories
 - **Visual Display** - Pexels API provides appetizing images for each dish
-- **Smart Search** - Filter dishes by name or category
-- **Shareable Links** - Create links to share scanned menus (30-day expiry)
+- **Smart Search** - Filter by text, source category, dietary indicator, and maximum price
+- **Saved Menus** - Corrected menus are automatically named and saved locally on the device
+- **Permanent Sharing** - Create validated permanent links and table-ready QR codes
+- **Menu Assistant** - Translate a menu and ask questions by text or voice
 - **Offline Ready** - PWA with service worker support
 
 ## Tech Stack
@@ -40,8 +43,8 @@ cd photo-menu
 npm install
 
 # Set up environment variables
-cp server/.env.example server/.env
-# Edit server/.env with your API keys
+cp .env.example .env
+# Edit .env with your API keys and canonical domain settings
 ```
 
 ### Environment Variables
@@ -53,6 +56,10 @@ ANTHROPIC_API_KEY=your_anthropic_key
 PEXELS_API_KEY=your_pexels_key
 DATABASE_PATH=./data/menus.sqlite
 RATE_LIMIT_MAX=10
+APP_NAME=menu.pictures
+ALLOWED_ORIGINS=https://menu.pictures,https://menu.photos
+VITE_APP_NAME=menu.pictures
+VITE_CANONICAL_URL=https://menu.pictures
 ```
 
 ### Development
@@ -70,6 +77,8 @@ npm run dev:server    # Express on :3005
 
 ```bash
 npm run build
+npm test
+npm run test:e2e
 npm run start
 ```
 
@@ -87,8 +96,17 @@ npm run start
 |----------|--------|-------------|
 | `/api/scan` | POST | Scan menu images (SSE streaming) |
 | `/api/scan/status` | GET | Check rate limit status |
-| `/api/share` | POST | Create shareable menu link |
-| `/api/share/:id` | GET | Retrieve shared menu |
+| `/api/scan/image` | POST | Retry or replace a representative dish image |
+| `/api/share` | POST | Create a permanent validated menu link |
+| `/api/share/:id` | GET | Retrieve a shared menu |
+
+## Privacy and trust
+
+Menu photos are sent to the configured AI provider for analysis but are not persisted by this application. Extracted descriptions, ingredients, allergens, and dietary indicators are AI-derived and must be confirmed with restaurant staff. Stock food photography is explicitly labeled as representative.
+
+## Domain cutover
+
+The app currently runs at `menu.pictures`. It is ready to run as `menu.photos` by changing `APP_NAME`, `ALLOWED_ORIGINS`, `VITE_APP_NAME`, and `VITE_CANONICAL_URL` during deployment. DNS, nginx virtual-host, and TLS changes remain external infrastructure operations.
 
 ## License
 

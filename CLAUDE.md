@@ -38,7 +38,7 @@ npm run clean         # Removes dist folders
 3. Server sends images to Claude Opus 4.8 → extracts `{name, price, category}[]`
 4. For each dish: check image cache → query Pexels if miss → cache result
 5. Results stream back via SSE (`status`, `dish`, `done` events)
-6. Client displays cards progressively as dishes arrive
+6. Client displays cards progressively, then requires a correction/review step before automatically saving the menu
 
 ### Key Files
 
@@ -52,7 +52,7 @@ npm run clean         # Removes dist folders
 **Server Routes:**
 - `POST /api/scan` - SSE streaming menu extraction (rate limited)
 - `GET /api/scan/status` - Rate limit info for current IP
-- `POST /api/share` - Create shareable menu link (30-day expiry)
+- `POST /api/share` - Create a permanent validated menu link and QR-ready URL
 - `GET /api/share/:id` - Retrieve shared menu
 - `POST /api/chat` - SSE streaming menu assistant chat (in-memory rate limited)
 - `POST /api/translate` - Translate the extracted menu into any language (in-memory rate limited)
@@ -64,6 +64,8 @@ npm run clean         # Removes dist folders
 - `SharePage.tsx` - Shared menu viewer (`/menu/:id`)
 - `LanguagePicker.tsx` - Translate the menu into any language (quick picks + free text)
 - `ChatWidget.tsx` - Voice-enabled menu assistant (Web Speech API mic input + spoken replies)
+- `MenuReview.tsx` - Correct extracted menu identity, dishes, ingredients, allergen and dietary indicators
+- `SavedMenuPage.tsx` - Reopen locally persisted menus without requiring a server share
 
 ### Pexels Image Search Logic
 
@@ -78,7 +80,7 @@ When images don't match, check `extractSearchableTerms()` and the keyword arrays
 ## Database
 
 SQLite tables in `data/menus.sqlite`:
-- `shared_menus` - Shareable links with JSON dish data, 30-day expiry
+- `shared_menus` - Permanent shareable links with validated versioned menu JSON
 - `image_cache` - Dish name → Pexels URL cache (normalized names)
 - `rate_limits` - IP-based scan counts with hourly window
 

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   dietaryTagSchema,
   extractedDishSchema,
-  menuDocumentSchema
+  menuDocumentSchema,
+  parseExtractedMenu
 } from './menu.js';
 
 describe('menu contracts', () => {
@@ -42,5 +43,13 @@ describe('menu contracts', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it('normalizes harmless AI response variations without weakening the schema', () => {
+    const menu = parseExtractedMenu([{ name: 'Soup', priceValue: '$12,50', category: '', dietaryTags: ['Vegan', 'healthy'] }]);
+    expect(menu.dishes[0]).toMatchObject({
+      name: 'Soup', priceValue: 12.5, category: 'Other', itemOrder: 0,
+      imageSearch: 'Soup plated dish', dietaryTags: ['vegan']
+    });
   });
 });

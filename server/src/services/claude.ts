@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { extractedMenuSchema, type ExtractedMenu } from '../domain/menu.js';
+import { parseExtractedMenu, type ExtractedMenu } from '../domain/menu.js';
 
 // Latest Claude model — used for menu extraction, translation, and the menu chat
 export const CLAUDE_MODEL = 'claude-opus-4-8';
@@ -131,7 +131,7 @@ Extract all items from the menu:`,
       jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```$/g, '').trim();
     }
 
-    return extractedMenuSchema.parse(JSON.parse(jsonText) as unknown);
+    return parseExtractedMenu(JSON.parse(jsonText) as unknown);
   } catch (error) {
     console.error('Failed to parse Claude response:', textContent.text);
     throw new Error('Failed to parse menu extraction response');

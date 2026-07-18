@@ -74,11 +74,18 @@ function HomePage() {
           if (dish && typeof dish.name === 'string') {
             setDishes(prev => [...prev, dish].sort((a, b) => a.itemOrder - b.itemOrder));
           }
+        } else if (event === 'image') {
+          const update = data as { id?: string; imageUrl?: string | null };
+          if (update.id) {
+            setDishes(prev => prev.map(dish => dish.id === update.id
+              ? { ...dish, imageUrl: update.imageUrl || null }
+              : dish));
+          }
         } else if (event === 'metadata') {
           setMetadata(data as MenuMetadata);
         } else if (event === 'progress') {
           setProgress(data as ScanProgress);
-        } else if (event === 'done') {
+        } else if (event === 'ready' || event === 'done') {
           setIsReviewing(true);
         } else if (event === 'status') {
           const status = data as { message?: string };

@@ -151,6 +151,16 @@ router.post('/', async (req: Request, res: Response) => {
     const { dishes, ...metadata } = extractedMenu;
     sendEvent('metadata', metadata);
 
+    const scanDishes = dishes.map((dish, index) => ({
+      id: randomUUID(),
+      index,
+      ...dish,
+      imageUrl: null,
+      imageIsRepresentative: true,
+    }));
+    for (const dish of scanDishes) sendEvent('dish', dish);
+    sendEvent('ready', { totalDishes: scanDishes.length });
+
     sendEvent('status', {
       message: `Found ${dishes.length} dishes. Fetching images...`,
       phase: 'images',
@@ -158,7 +168,7 @@ router.post('/', async (req: Request, res: Response) => {
     });
 
     let completed = 0;
-    await mapWithConcurrency(dishes, IMAGE_CONCURRENCY, async (dish, i) => {
+    await mapWithConcurrency(scanDishes, IMAGE_CONCURRENCY, async (dish) => {
       if (isConnectionClosed) return;
       try {
         const imageUrl = await searchDishImage(
@@ -167,22 +177,10 @@ router.post('/', async (req: Request, res: Response) => {
           requestController.signal
         );
 
-        sendEvent('dish', {
-          id: randomUUID(),
-          index: i,
-          ...dish,
-          imageUrl: imageUrl || null,
-          imageIsRepresentative: true
-        });
+        sendEvent('image', { id: dish.id, imageUrl: imageUrl || null });
       } catch (error) {
         console.error(`Failed to fetch image for ${dish.name}:`, error);
-        sendEvent('dish', {
-          id: randomUUID(),
-          index: i,
-          ...dish,
-          imageUrl: null,
-          imageIsRepresentative: true
-        });
+        sendEvent('image', { id: dish.id, imageUrl: null });
       } finally {
         completed += 1;
         sendEvent('progress', {

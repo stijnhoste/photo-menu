@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
-import { extractedMenuSchema, parseExtractedMenu, type ExtractedMenu } from '../domain/menu.js';
+import { compactMenuSchema, expandCompactMenu } from '../domain/compactMenu.js';
+import type { ExtractedMenu } from '../domain/menu.js';
 
 // Keep interactive language features on the richer model, but use Anthropic's
 // fastest vision model for the latency-sensitive menu scan path.
@@ -55,9 +56,9 @@ export async function extractMenuDishes(images: string[]): Promise<ExtractedMenu
 
   const response = await getClient().messages.parse({
     model: CLAUDE_EXTRACTION_MODEL,
-    max_tokens: 16_384,
+    max_tokens: 8_192,
     output_config: {
-      format: zodOutputFormat(extractedMenuSchema),
+      format: zodOutputFormat(compactMenuSchema),
     },
     messages: [
       {
@@ -66,57 +67,12 @@ export async function extractMenuDishes(images: string[]): Promise<ExtractedMenu
           ...imageBlocks,
           {
             type: 'text',
-            text: `Analyze these restaurant menu images and extract the menu identity and every item in source order.
+            text: `Extract every printed menu item accurately and concisely.
 
-Return ONLY one JSON object with this exact structure:
-{
-  "restaurantName": "Restaurant name or null",
-  "menuName": "Dinner Menu or null",
-  "currency": "USD or null",
-  "sourceLanguage": "English or null",
-  "dishes": [
-    {
-      "name": "Dish Name",
-      "description": "Exact printed description or null",
-      "price": "$12.99",
-      "priceValue": 12.99,
-      "category": "Main Courses",
-      "categoryOrder": 2,
-      "itemOrder": 8,
-      "imageSearch": "grilled steak dinner plate",
-      "ingredients": ["beef", "peppercorn sauce"],
-      "allergens": ["milk"],
-      "dietaryTags": ["gluten-free"]
-    }
-  ]
-}
+The output schema is provided. Put section names in categories in visual source order. Each items tuple is:
+[exact item name, price exactly as printed or null, numeric lowest price or null, zero-based category index, exact printed description or null].
 
-Rules:
-- Extract the EXACT dish name as written on the menu
-- Preserve printed descriptions; do not invent a description
-- Include the price with currency symbol if visible, or null if not shown
-- Set priceValue to the numeric base/lowest price without a currency symbol, or null
-- Assign each item to a category based on the menu section or infer from the dish type
-- Preserve source order using zero-based categoryOrder and itemOrder values
-- Use these category names when applicable: "Appetizers", "Salads", "Soups", "Main Courses", "Pasta", "Pizza", "Burgers", "Sandwiches", "Seafood", "Grills", "Sides", "Desserts", "Drinks", "Cocktails", "Breakfast", "Brunch", "Kids Menu", "Specials"
-- If a category doesn't fit the above, use a short descriptive name from the menu
-- If a dish has multiple sizes/options, include the base name with the first/lowest price
-- ingredients must contain only ingredients printed on the menu, never guessed ingredients
-- allergens must contain only allergens explicitly printed or directly evidenced by printed ingredients; otherwise use []
-- dietaryTags may contain only: vegetarian, vegan, gluten-free, dairy-free, nut-free, halal, kosher, spicy
-- Do not infer safety-sensitive dietary tags from general culinary knowledge; use [] when uncertain
-- CRITICAL: For imageSearch, describe what the item LOOKS like visually with 4-6 words. Include colors, glass types, and garnishes for drinks. Examples:
-  * "Bloody Mary Jug" -> "bloody mary red tomato celery cocktail"
-  * "Mimosa" -> "mimosa orange champagne flute brunch"
-  * "Old Fashioned" -> "old fashioned amber whiskey orange peel"
-  * "Chia Berry" -> "berry smoothie purple red glass"
-  * "Pina Colada" -> "pina colada white coconut pineapple tropical"
-  * "Mojito" -> "mojito green mint lime cocktail"
-  * "Espresso Martini" -> "espresso martini brown coffee foam"
-  * For food: "Caesar Salad" -> "caesar salad romaine parmesan croutons"
-- Return valid JSON only, no explanation or markdown
-
-Extract all items from the menu:`,
+Preserve visual reading order. Do not invent descriptions, ingredients, allergens, dietary claims, prices, or missing text. For multiple sizes, keep the base item with its first/lowest price.`,
           },
         ],
       },
@@ -138,7 +94,7 @@ Extract all items from the menu:`,
     throw new Error('Claude returned no structured menu');
   }
 
-  return parseExtractedMenu(response.parsed_output);
+  return expandCompactMenu(response.parsed_output);
 }
 
 export interface TranslatableDish {

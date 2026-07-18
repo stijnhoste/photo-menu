@@ -1,5 +1,4 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { compactMenuSchema, expandCompactMenu } from '../domain/compactMenu.js';
 import type { ExtractedMenu } from '../domain/menu.js';
 
@@ -54,12 +53,9 @@ export async function extractMenuDishes(images: string[]): Promise<ExtractedMenu
     };
   });
 
-  const response = await getClient().messages.parse({
+  const response = await getClient().messages.create({
     model: CLAUDE_EXTRACTION_MODEL,
     max_tokens: 8_192,
-    output_config: {
-      format: zodOutputFormat(compactMenuSchema),
-    },
     messages: [
       {
         role: 'user',
@@ -67,12 +63,10 @@ export async function extractMenuDishes(images: string[]): Promise<ExtractedMenu
           ...imageBlocks,
           {
             type: 'text',
-            text: `Extract every printed menu item accurately and concisely.
+            text: `Extract every printed menu item accurately and concisely. Return only valid JSON, without markdown, in this exact compact shape:
+{"restaurantName":string|null,"menuName":string|null,"currency":string|null,"sourceLanguage":string|null,"categories":[string],"items":[[exactItemName,printedPriceOrNull,zeroBasedCategoryIndex]]}
 
-The output schema is provided. Put section names in categories in visual source order. Each items tuple is:
-[exact item name, price exactly as printed or null, zero-based category index].
-
-Preserve visual reading order. Do not invent prices or missing text. For multiple sizes, keep the base item with its first/lowest price.`,
+Put section names in categories in visual source order. Preserve visual reading order. Do not invent prices or missing text. For multiple sizes, keep the base item with its first/lowest price.`,
           },
         ],
       },
@@ -90,11 +84,16 @@ Preserve visual reading order. Do not invent prices or missing text. For multipl
   if (response.stop_reason === 'max_tokens') {
     throw new Error('Menu extraction exceeded the model output limit');
   }
-  if (!response.parsed_output) {
-    throw new Error('Claude returned no structured menu');
+  const textContent = response.content.find(block => block.type === 'text');
+  if (!textContent || textContent.type !== 'text') {
+    throw new Error('Claude returned no menu text');
   }
 
-  return expandCompactMenu(response.parsed_output);
+  let jsonText = textContent.text.trim();
+  if (jsonText.startsWith('```')) {
+    jsonText = jsonText.replace(/^```json?\s*/i, '').replace(/```\s*$/, '').trim();
+  }
+  return expandCompactMenu(compactMenuSchema.parse(JSON.parse(jsonText) as unknown));
 }
 
 export interface TranslatableDish {

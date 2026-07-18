@@ -46,10 +46,14 @@ describe('menu contracts', () => {
   });
 
   it('normalizes harmless AI response variations without weakening the schema', () => {
-    const menu = parseExtractedMenu([{ name: 'Soup', priceValue: '$12,50', category: '', dietaryTags: ['Vegan', 'healthy'] }]);
+    const menu = parseExtractedMenu([
+      { name: 'Soup', priceValue: '$12,50', category: '', itemOrder: 0, dietaryTags: ['Vegan', 'healthy'] },
+      { name: 'Risotto', itemOrder: 0 }
+    ]);
     expect(menu.dishes[0]).toMatchObject({
       name: 'Soup', priceValue: 12.5, category: 'Other', itemOrder: 0,
       imageSearch: 'Soup plated dish', dietaryTags: ['vegan']
     });
+    expect(menu.dishes[1].itemOrder).toBe(1);
   });
 });

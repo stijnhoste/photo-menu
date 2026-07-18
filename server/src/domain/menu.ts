@@ -96,7 +96,7 @@ export function parseExtractedMenu(input: unknown): ExtractedMenu {
       imageSearch: typeof dish.imageSearch === 'string' && dish.imageSearch.trim() ? dish.imageSearch : `${name} plated dish`,
       category: typeof dish.category === 'string' && dish.category.trim() ? dish.category : 'Other',
       categoryOrder: typeof dish.categoryOrder === 'number' ? dish.categoryOrder : 0,
-      itemOrder: typeof dish.itemOrder === 'number' ? dish.itemOrder : index,
+      itemOrder: index,
       priceValue: typeof priceValue === 'number' && Number.isFinite(priceValue) ? priceValue : null,
       dietaryTags
     };

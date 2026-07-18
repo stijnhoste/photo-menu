@@ -2,8 +2,10 @@ import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { extractedMenuSchema, parseExtractedMenu, type ExtractedMenu } from '../domain/menu.js';
 
-// Latest Claude model — used for menu extraction, translation, and the menu chat
+// Keep interactive language features on the richer model, but use Anthropic's
+// fastest vision model for the latency-sensitive menu scan path.
 export const CLAUDE_MODEL = 'claude-opus-4-8';
+export const CLAUDE_EXTRACTION_MODEL = 'claude-haiku-4-5-20251001';
 
 // Lazy initialization to ensure dotenv has loaded
 let anthropic: Anthropic | null = null;
@@ -18,7 +20,7 @@ export function getClient(): Anthropic {
 }
 
 /**
- * Extract dish names and prices from menu image(s) using Claude Opus 4.8.
+ * Extract dish names and prices from menu image(s) using Claude Haiku 4.5.
  *
  * @param images - Array of base64-encoded images (with or without data URL prefix)
  * @returns Array of extracted dishes with names and prices
@@ -52,7 +54,7 @@ export async function extractMenuDishes(images: string[]): Promise<ExtractedMenu
   });
 
   const response = await getClient().messages.parse({
-    model: CLAUDE_MODEL,
+    model: CLAUDE_EXTRACTION_MODEL,
     max_tokens: 16_384,
     output_config: {
       format: zodOutputFormat(extractedMenuSchema),

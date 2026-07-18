@@ -56,7 +56,7 @@ export async function extractMenuDishes(images: string[]): Promise<ExtractedMenu
 
   const response = await getClient().messages.parse({
     model: CLAUDE_EXTRACTION_MODEL,
-    max_tokens: 8_192,
+    max_tokens: 4_096,
     output_config: {
       format: zodOutputFormat(compactMenuSchema),
     },
@@ -70,9 +70,9 @@ export async function extractMenuDishes(images: string[]): Promise<ExtractedMenu
             text: `Extract every printed menu item accurately and concisely.
 
 The output schema is provided. Put section names in categories in visual source order. Each items tuple is:
-[exact item name, price exactly as printed or null, numeric lowest price or null, zero-based category index, exact printed description or null].
+[exact item name, price exactly as printed or null, zero-based category index].
 
-Preserve visual reading order. Do not invent descriptions, ingredients, allergens, dietary claims, prices, or missing text. For multiple sizes, keep the base item with its first/lowest price.`,
+Preserve visual reading order. Do not invent prices or missing text. For multiple sizes, keep the base item with its first/lowest price.`,
           },
         ],
       },

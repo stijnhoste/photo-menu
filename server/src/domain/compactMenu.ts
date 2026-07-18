@@ -12,13 +12,17 @@ export const compactMenuSchema = z.object({
   items: z.array(z.tuple([
     z.string().trim().min(1).max(200).describe('Exact item name'),
     nullableText(30).describe('Price exactly as printed'),
-    z.number().finite().nonnegative().nullable().describe('Numeric lowest price'),
     z.number().int().nonnegative().describe('Zero-based category index'),
-    nullableText(500).describe('Exact printed description, otherwise null'),
   ])).min(1).max(300),
 });
 
 export type CompactMenu = z.infer<typeof compactMenuSchema>;
+
+function numericPrice(price: string | null): number | null {
+  if (!price) return null;
+  const parsed = Number.parseFloat(price.replace(',', '.').replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
 
 export function expandCompactMenu(menu: CompactMenu): ExtractedMenu {
   return {
@@ -26,14 +30,14 @@ export function expandCompactMenu(menu: CompactMenu): ExtractedMenu {
     menuName: menu.menuName,
     currency: menu.currency,
     sourceLanguage: menu.sourceLanguage,
-    dishes: menu.items.map(([name, price, priceValue, rawCategoryIndex, description], itemOrder) => {
+    dishes: menu.items.map(([name, price, rawCategoryIndex], itemOrder) => {
       const categoryIndex = Math.min(rawCategoryIndex, menu.categories.length - 1);
       const category = menu.categories[categoryIndex] || 'Other';
       return {
         name,
-        description,
+        description: null,
         price,
-        priceValue,
+        priceValue: numericPrice(price),
         category,
         categoryOrder: categoryIndex,
         itemOrder,

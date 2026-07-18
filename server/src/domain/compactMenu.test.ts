@@ -7,8 +7,8 @@ describe('compact menu extraction', () => {
       restaurantName: 'Chinor', menuName: 'Bar Menu', currency: 'TJS', sourceLanguage: 'Russian',
       categories: ['Coffee', 'Tea'],
       items: [
-        ['Americano', '18c', 18, 0, null],
-        ['Black tea', '25c', 25, 1, null],
+        ['Americano', '18c', 0],
+        ['Black tea', '25c', 1],
       ],
     });
 
@@ -22,7 +22,7 @@ describe('compact menu extraction', () => {
   it('clamps an invalid category index instead of failing the scan', () => {
     const compact = compactMenuSchema.parse({
       restaurantName: null, menuName: null, currency: null, sourceLanguage: null,
-      categories: ['Other'], items: [['Water', null, null, 4, null]],
+      categories: ['Other'], items: [['Water', null, 4]],
     });
     expect(expandCompactMenu(compact).dishes[0].category).toBe('Other');
   });

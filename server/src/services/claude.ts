@@ -56,7 +56,7 @@ export async function extractMenuDishes(images: string[]): Promise<ExtractedMenu
 
   const response = await getClient().messages.parse({
     model: CLAUDE_EXTRACTION_MODEL,
-    max_tokens: 4_096,
+    max_tokens: 8_192,
     output_config: {
       format: zodOutputFormat(compactMenuSchema),
     },

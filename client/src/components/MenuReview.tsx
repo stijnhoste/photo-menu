@@ -24,6 +24,12 @@ function splitList(value: string): string[] {
   return value.split(',').map(item => item.trim()).filter(Boolean);
 }
 
+function parsePrice(value: string): number | null {
+  const normalized = value.replace(/[^0-9.,]/g, '').replace(',', '.');
+  const parsed = Number.parseFloat(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export default function MenuReview({
   dishes,
   metadata,
@@ -123,7 +129,10 @@ export default function MenuReview({
                     value={dish.price || ''}
                     maxLength={30}
                     placeholder="$12.00"
-                    onChange={event => updateDish(dish.id, { price: event.target.value || null })}
+                    onChange={event => updateDish(dish.id, {
+                      price: event.target.value || null,
+                      priceValue: parsePrice(event.target.value)
+                    })}
                   />
                 </label>
               </div>

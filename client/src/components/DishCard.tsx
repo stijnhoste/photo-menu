@@ -10,9 +10,11 @@ export default function DishCard({ dish, onImageChange }: DishCardProps) {
   const [imageError, setImageError] = useState(false);
   const [retryAttempt, setRetryAttempt] = useState(1);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [retryError, setRetryError] = useState(false);
 
   const retryImage = async () => {
     setIsRetrying(true);
+    setRetryError(false);
     try {
       const response = await fetch('/api/scan/image', {
         method: 'POST',
@@ -24,6 +26,8 @@ export default function DishCard({ dish, onImageChange }: DishCardProps) {
       setRetryAttempt(attempt => Math.min(8, attempt + 1));
       setImageError(false);
       onImageChange?.(data.imageUrl);
+    } catch {
+      setRetryError(true);
     } finally {
       setIsRetrying(false);
     }
@@ -66,6 +70,7 @@ export default function DishCard({ dish, onImageChange }: DishCardProps) {
             {isRetrying ? 'Finding another…' : dish.imageUrl ? 'Try another image' : 'Find an image'}
           </button>
         )}
+        {retryError && <p className="image-retry-error" role="alert">Could not find another image.</p>}
       </div>
     </div>
   );

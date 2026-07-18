@@ -67,6 +67,11 @@ export default function MenuGrid({ dishes, isLoading, statusMessage, progress, m
 
   return (
     <div className="menu-container">
+      {dishes.some(dish => (dish.dietaryTags?.length || dish.allergens?.length)) && (
+        <aside className="ai-data-notice">
+          Dietary and allergen indicators were extracted by AI from menu text. They are not a safety guarantee—confirm with restaurant staff.
+        </aside>
+      )}
       {/* Header with count and actions */}
       <div className="grid-header">
         <h2>{filteredDishes.length} item{filteredDishes.length !== 1 ? 's' : ''} found</h2>

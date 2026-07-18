@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { compactMenuSchema, expandCompactMenu, mergeExtractedMenus } from '../domain/compactMenu.js';
 import type { ExtractedMenu } from '../domain/menu.js';
+import { extractDocumentText, getOcrProvider } from './ocr.js';
 
 // Keep interactive language features on the richer model, but use Anthropic's
 // fastest vision model for the latency-sensitive menu scan path.
@@ -53,7 +54,7 @@ export async function extractMenuDishes(images: string[]): Promise<ExtractedMenu
     };
   });
 
-  const requestRegion = async (scope: string) => {
+  const requestRegion = async (scope: string, ocrText?: string) => {
     const response = await getClient().messages.create({
     model: CLAUDE_EXTRACTION_MODEL,
     max_tokens: 8_192,
@@ -61,7 +62,10 @@ export async function extractMenuDishes(images: string[]): Promise<ExtractedMenu
       {
         role: 'user',
         content: [
-          ...imageBlocks,
+          ...(ocrText ? [{
+            type: 'text' as const,
+            text: `Dedicated document OCR output follows. Correct obvious OCR errors using menu context, but do not invent missing items:\n\n${ocrText}`,
+          }] : imageBlocks),
           {
             type: 'text',
             text: `Extract every printed menu item ${scope} accurately and concisely. Return only valid JSON, without markdown, in this exact compact shape:
@@ -78,6 +82,7 @@ Put section names in categories in visual source order. Preserve top-to-bottom v
       type: 'claude_extraction',
       model: response.model,
       scope,
+      source: ocrText ? 'google-vision-ocr' : 'claude-vision',
       stopReason: response.stop_reason,
       inputTokens: response.usage.input_tokens,
       outputTokens: response.usage.output_tokens,
@@ -98,6 +103,10 @@ Put section names in categories in visual source order. Preserve top-to-bottom v
     return expandCompactMenu(compactMenuSchema.parse(JSON.parse(jsonText) as unknown));
   };
 
+  if (getOcrProvider() === 'google-vision') {
+    const ocrText = await extractDocumentText(images);
+    return requestRegion('from the supplied OCR text', ocrText);
+  }
   if (images.length === 1) {
     const [left, right] = await Promise.all([
       requestRegion('whose item name begins in the left half of the image'),

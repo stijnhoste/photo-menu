@@ -53,6 +53,7 @@ Create `server/.env`:
 
 ```env
 ANTHROPIC_API_KEY=your_anthropic_key
+GOOGLE_VISION_API_KEY=your_google_cloud_vision_key
 PEXELS_API_KEY=your_pexels_key
 DATABASE_PATH=./data/menus.sqlite
 RATE_LIMIT_MAX=10
@@ -85,10 +86,10 @@ npm run start
 ## How It Works
 
 1. User captures or uploads menu photo(s)
-2. Images are compressed client-side (max 1024px)
-3. Server sends images to Claude Opus 4.8 for extraction
-4. Each dish gets matched with a Pexels image (cached in SQLite)
-5. Results stream back via SSE for progressive display
+2. Images use 2048px when Google Vision OCR is configured, otherwise 1024px
+3. Google Vision extracts document text and Haiku structures it; without an OCR key, parallel Haiku vision is used
+4. The editable review appears before representative photos finish loading
+5. Each dish is progressively matched with a Pexels image (cached in SQLite)
 
 ## API Endpoints
 

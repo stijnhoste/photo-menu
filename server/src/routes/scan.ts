@@ -7,6 +7,7 @@ import { mapWithConcurrency } from '../utils/concurrency.js';
 import { startSseHeartbeat } from '../utils/sseHeartbeat.js';
 import { createMemoryLimiter } from '../services/memoryRateLimiter.js';
 import { z } from 'zod';
+import { getOcrProvider } from '../services/ocr.js';
 
 const IMAGE_CONCURRENCY = Math.max(
   1,
@@ -33,6 +34,7 @@ router.get('/status', (req: Request, res: Response) => {
     remaining: status.remaining,
     resetAt: status.resetAt.toISOString(),
     allowed: status.allowed,
+    ocrProvider: getOcrProvider(),
   });
 });
 

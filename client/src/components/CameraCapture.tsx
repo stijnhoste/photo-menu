@@ -16,11 +16,19 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
 
     setIsProcessing(true);
     const newPreviews: string[] = [];
+    let maxDimension = 1024;
+    try {
+      const response = await fetch('/api/scan/status');
+      const status = await response.json() as { ocrProvider?: string };
+      if (status.ocrProvider === 'google-vision') maxDimension = 2048;
+    } catch {
+      // Keep the proven vision-model size when status is unavailable.
+    }
 
     // Process images in parallel for faster loading
     const compressionPromises = Array.from(files).map(async (file) => {
       try {
-        return await compressImage(file, 1024);
+        return await compressImage(file, maxDimension);
       } catch (err) {
         console.error('Failed to process image:', err);
         return null;

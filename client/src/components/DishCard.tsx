@@ -3,10 +3,31 @@ import type { Dish } from '../types';
 
 interface DishCardProps {
   dish: Dish;
+  onImageChange?: (imageUrl: string | null) => void;
 }
 
-export default function DishCard({ dish }: DishCardProps) {
+export default function DishCard({ dish, onImageChange }: DishCardProps) {
   const [imageError, setImageError] = useState(false);
+  const [retryAttempt, setRetryAttempt] = useState(1);
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  const retryImage = async () => {
+    setIsRetrying(true);
+    try {
+      const response = await fetch('/api/scan/image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: dish.name, category: dish.category, attempt: retryAttempt })
+      });
+      if (!response.ok) throw new Error('Image retry failed');
+      const data = await response.json() as { imageUrl: string | null };
+      setRetryAttempt(attempt => Math.min(8, attempt + 1));
+      setImageError(false);
+      onImageChange?.(data.imageUrl);
+    } finally {
+      setIsRetrying(false);
+    }
+  };
 
   return (
     <div className="dish-card">
@@ -30,6 +51,21 @@ export default function DishCard({ dish }: DishCardProps) {
           <p className="dish-original-name">{dish.originalName}</p>
         )}
         {dish.price && <span className="price">{dish.price}</span>}
+        {dish.description && <p className="dish-description">{dish.description}</p>}
+        {dish.dietaryTags?.length > 0 && (
+          <div className="dish-tags">{dish.dietaryTags.map(tag => <span key={tag}>{tag}</span>)}</div>
+        )}
+        {dish.allergens?.length > 0 && (
+          <p className="dish-allergens">May contain: {dish.allergens.join(', ')}. Confirm with staff.</p>
+        )}
+        {dish.imageUrl && dish.imageIsRepresentative && (
+          <p className="representative-note">Representative image</p>
+        )}
+        {onImageChange && (
+          <button className="image-retry" onClick={retryImage} disabled={isRetrying}>
+            {isRetrying ? 'Finding another…' : dish.imageUrl ? 'Try another image' : 'Find an image'}
+          </button>
+        )}
       </div>
     </div>
   );

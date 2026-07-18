@@ -1,14 +1,17 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { useState } from 'react';
+import { BrowserRouter, Link, Routes, Route } from 'react-router-dom';
+import { useRef, useState } from 'react';
 import CameraCapture from './components/CameraCapture';
 import MenuGrid from './components/MenuGrid';
 import SharePage from './components/SharePage';
 import SavedMenus from './components/SavedMenus';
+import SavedMenuPage from './components/SavedMenuPage';
 import LanguagePicker from './components/LanguagePicker';
 import ChatWidget from './components/ChatWidget';
 import MenuReview from './components/MenuReview';
 import { readSSE } from './utils/sse';
-import type { Dish, MenuMetadata, ScanProgress } from './types';
+import { createMenu, saveMenu } from './utils/menuStorage';
+import type { Dish, Menu, MenuMetadata, ScanProgress } from './types';
+import { APP_NAME } from './config';
 
 const EMPTY_METADATA: MenuMetadata = {
   restaurantName: null,
@@ -28,10 +31,15 @@ function HomePage() {
   const [progress, setProgress] = useState<ScanProgress | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeMenu, setActiveMenu] = useState<Menu | null>(null);
+  const scanControllerRef = useRef<AbortController | null>(null);
 
   const displayDishes = translatedDishes ?? dishes;
 
   const handleScan = async (images: string[]) => {
+    scanControllerRef.current?.abort();
+    const controller = new AbortController();
+    scanControllerRef.current = controller;
     setIsScanning(true);
     setDishes([]);
     setTranslatedDishes(null);
@@ -41,12 +49,14 @@ function HomePage() {
     setIsReviewing(false);
     setError(null);
     setStatusMessage('Analyzing menu…');
+    setActiveMenu(null);
 
     try {
       const response = await fetch('/api/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images })
+        body: JSON.stringify({ images }),
+        signal: controller.signal
       });
 
       if (response.status === 429) {
@@ -79,8 +89,11 @@ function HomePage() {
         }
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      if (!(err instanceof DOMException && err.name === 'AbortError')) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      }
     } finally {
+      if (scanControllerRef.current === controller) scanControllerRef.current = null;
       setIsScanning(false);
       setStatusMessage(null);
     }
@@ -134,6 +147,8 @@ function HomePage() {
   };
 
   const handleReset = () => {
+    scanControllerRef.current?.abort();
+    scanControllerRef.current = null;
     setDishes([]);
     setTranslatedDishes(null);
     setLanguage(null);
@@ -141,6 +156,31 @@ function HomePage() {
     setProgress(null);
     setIsReviewing(false);
     setError(null);
+    setActiveMenu(null);
+  };
+
+  const handleCancelScan = () => {
+    scanControllerRef.current?.abort();
+    setIsScanning(false);
+    setStatusMessage(null);
+    if (dishes.length > 0) setIsReviewing(true);
+  };
+
+  const handleReviewConfirm = () => {
+    const menu = createMenu(metadata, dishes, activeMenu?.id);
+    saveMenu(menu);
+    setActiveMenu(menu);
+    setIsReviewing(false);
+  };
+
+  const handleDishChange = (updatedDish: Dish) => {
+    const updatedDishes = dishes.map(dish => dish.id === updatedDish.id ? updatedDish : dish);
+    setDishes(updatedDishes);
+    if (activeMenu) {
+      const updatedMenu = { ...activeMenu, dishes: updatedDishes };
+      saveMenu(updatedMenu);
+      setActiveMenu(updatedMenu);
+    }
   };
 
   const showGrid = dishes.length > 0 || isScanning;
@@ -149,9 +189,12 @@ function HomePage() {
     <div className="app">
       <header className="header">
         <h1>
-          menu<span className="header-dot">.</span>pictures
+          {APP_NAME.includes('.') ? <>{APP_NAME.split('.')[0]}<span className="header-dot">.</span>{APP_NAME.split('.').slice(1).join('.')}</> : APP_NAME}
         </h1>
         <p>Snap a menu, see every dish</p>
+        <nav className="header-nav" aria-label="Main navigation">
+          <Link to="/saved">Saved menus</Link>
+        </nav>
       </header>
 
       <main>
@@ -163,7 +206,7 @@ function HomePage() {
             metadata={metadata}
             onDishesChange={setDishes}
             onMetadataChange={setMetadata}
-            onConfirm={() => setIsReviewing(false)}
+            onConfirm={handleReviewConfirm}
             onRescan={handleReset}
           />
         ) : (
@@ -181,6 +224,9 @@ function HomePage() {
               isLoading={isScanning}
               statusMessage={statusMessage}
               progress={progress}
+              menu={activeMenu}
+              onCancel={handleCancelScan}
+              onDishChange={handleDishChange}
               onReset={handleReset}
             />
           </>
@@ -203,6 +249,7 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/menu/:id" element={<SharePage />} />
         <Route path="/saved" element={<SavedMenus />} />
+        <Route path="/saved/:id" element={<SavedMenuPage />} />
       </Routes>
     </BrowserRouter>
   );

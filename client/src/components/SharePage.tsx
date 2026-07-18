@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import MenuGrid from './MenuGrid';
-import type { Dish } from '../types';
+import type { Dish, Menu } from '../types';
 
 export default function SharePage() {
   const { id } = useParams<{ id: string }>();
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [menu, setMenu] = useState<Menu | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -21,7 +22,9 @@ export default function SharePage() {
         return res.json();
       })
       .then(data => {
-        setDishes(data.dishes);
+        const sharedMenu = data.menu as Menu | undefined;
+        setMenu(sharedMenu || null);
+        setDishes(sharedMenu?.dishes || data.dishes || []);
         setLoading(false);
       })
       .catch(err => {
@@ -64,6 +67,7 @@ export default function SharePage() {
       </Link>
       <MenuGrid
         dishes={dishes}
+        menu={menu}
         isLoading={false}
         onReset={() => window.location.href = '/'}
       />

@@ -167,10 +167,11 @@ const FETCH_TIMEOUT_MS = 10000;
 export async function searchDishImage(
   dishName: string,
   imageSearchQuery?: string,
-  requestSignal?: AbortSignal
+  requestSignal?: AbortSignal,
+  options: { skipCache?: boolean; page?: number } = {}
 ): Promise<string | null> {
   // Check cache first
-  const cached = getCachedImage(dishName);
+  const cached = options.skipCache ? null : getCachedImage(dishName);
   if (cached) {
     return cached;
   }
@@ -192,7 +193,7 @@ export async function searchDishImage(
     const searchQuery = imageSearchQuery || buildSearchQuery(dishName);
 
     const response = await fetch(
-      `${PEXELS_API_URL}?query=${encodeURIComponent(searchQuery)}&per_page=1&orientation=square`,
+      `${PEXELS_API_URL}?query=${encodeURIComponent(searchQuery)}&per_page=1&orientation=square&page=${options.page || 1}`,
       {
         headers: {
           Authorization: apiKey,
@@ -216,7 +217,7 @@ export async function searchDishImage(
       const imageUrl = data.photos[0].src.medium;
 
       // Only cache successful results (not null/failures)
-      cacheImage(dishName, imageUrl);
+      if (!options.skipCache) cacheImage(dishName, imageUrl);
 
       return imageUrl;
     }

@@ -4,11 +4,19 @@ import { extractMenuDishes } from '../services/claude.js';
 import { searchDishImage } from '../services/pexels.js';
 import { checkRateLimit, getRateLimitStatus } from '../services/rateLimiter.js';
 import { mapWithConcurrency } from '../utils/concurrency.js';
+import { createMemoryLimiter } from '../services/memoryRateLimiter.js';
+import { z } from 'zod';
 
 const IMAGE_CONCURRENCY = Math.max(
   1,
   Math.min(8, Number(process.env.IMAGE_FETCH_CONCURRENCY) || 4)
 );
+const checkImageRetryLimit = createMemoryLimiter(40, 3600000);
+const imageRetrySchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  category: z.string().trim().max(60).default('Food'),
+  attempt: z.number().int().min(1).max(8).default(1)
+});
 
 const router = Router();
 
@@ -25,6 +33,27 @@ router.get('/status', (req: Request, res: Response) => {
     resetAt: status.resetAt.toISOString(),
     allowed: status.allowed,
   });
+});
+
+router.post('/image', async (req: Request, res: Response) => {
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  if (!checkImageRetryLimit(ip).allowed) {
+    res.status(429).json({ error: 'Image retry limit exceeded' });
+    return;
+  }
+  const parsed = imageRetrySchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid image request' });
+    return;
+  }
+  const { name, category, attempt } = parsed.data;
+  const imageUrl = await searchDishImage(
+    name,
+    `${name} ${category} plated dish`,
+    undefined,
+    { skipCache: true, page: attempt + 1 }
+  );
+  res.json({ imageUrl });
 });
 
 /**

@@ -2,23 +2,14 @@ import { Router, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { getDatabase } from '../services/database.js';
 import { checkRateLimit } from '../services/rateLimiter.js';
+import { menuDocumentSchema } from '../domain/menu.js';
 
 const router = Router();
 
-// Share link expiry in days
-const SHARE_EXPIRY_DAYS = 30;
-
-// Maximum dishes per share
-const MAX_DISHES_PER_SHARE = 100;
+const PERMANENT_EXPIRY = '9999-12-31T23:59:59.999Z';
 
 // UUID validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-interface Dish {
-  name: string;
-  price: string | null;
-  imageUrl: string | null;
-}
 
 /**
  * Create a shareable link for a menu.
@@ -39,30 +30,26 @@ router.post('/', (req: Request, res: Response) => {
     return;
   }
 
-  const { dishes } = req.body as { dishes?: Dish[] };
-
-  if (!dishes || !Array.isArray(dishes) || dishes.length === 0) {
-    res.status(400).json({ error: 'No dishes provided' });
-    return;
-  }
-
-  if (dishes.length > MAX_DISHES_PER_SHARE) {
-    res.status(400).json({ error: `Maximum ${MAX_DISHES_PER_SHARE} dishes per share` });
+  const parsed = menuDocumentSchema.safeParse(req.body?.menu);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: 'A valid reviewed menu is required',
+      details: parsed.error.issues.map(issue => ({ path: issue.path.join('.'), message: issue.message }))
+    });
     return;
   }
 
   try {
     const db = getDatabase();
     const shareId = randomUUID();
-    const expiresAt = new Date(Date.now() + SHARE_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
 
     db.prepare(
       'INSERT INTO shared_menus (id, dishes, expires_at) VALUES (?, ?, ?)'
-    ).run(shareId, JSON.stringify(dishes), expiresAt.toISOString());
+    ).run(shareId, JSON.stringify(parsed.data), PERMANENT_EXPIRY);
 
     res.json({
       shareId,
-      expiresAt: expiresAt.toISOString(),
+      expiresAt: null,
     });
   } catch (error) {
     console.error('Failed to create share:', error);
@@ -96,11 +83,14 @@ router.get('/:id', (req: Request, res: Response) => {
       return;
     }
 
-    res.json({
-      dishes: JSON.parse(row.dishes),
-      createdAt: row.created_at,
-      expiresAt: row.expires_at,
-    });
+    const stored = JSON.parse(row.dishes) as unknown;
+    if (Array.isArray(stored)) {
+      res.json({ dishes: stored, createdAt: row.created_at, expiresAt: row.expires_at });
+      return;
+    }
+
+    const menu = menuDocumentSchema.parse(stored);
+    res.json({ menu, createdAt: row.created_at, expiresAt: null });
   } catch (error) {
     console.error('Failed to get share:', error);
     res.status(500).json({ error: 'Failed to retrieve shared menu' });

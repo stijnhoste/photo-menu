@@ -81,11 +81,225 @@ body {
   font-family: var(--font-display);
 }
 
+.header-nav {
+  margin-top: 0.8rem;
+}
+
+.header-nav a {
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.header-nav a:hover {
+  text-decoration: underline;
+}
+
+.scan-cancel {
+  display: block;
+  margin: 0.75rem auto 1rem;
+}
+
+.advanced-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.7rem 0 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+}
+
+.price-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  color: var(--text-light);
+  font-size: 0.78rem;
+}
+
+.price-filter input {
+  width: 4.5rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: var(--card-bg);
+  color: var(--text);
+}
+
+.dish-description {
+  margin-top: 0.35rem;
+  color: var(--text-light);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.dish-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.dish-tags span {
+  padding: 0.2rem 0.4rem;
+  border-radius: 2rem;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.dish-allergens,
+.representative-note {
+  margin-top: 0.45rem;
+  color: var(--text-light);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.dish-allergens {
+  color: var(--accent-dark);
+}
+
+.image-retry {
+  margin-top: 0.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.image-retry:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.share-inline-error {
+  color: var(--accent-dark);
+  font-size: 0.75rem;
+}
+
+.share-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(20, 15, 10, 0.62);
+  backdrop-filter: blur(8px);
+}
+
+.share-dialog-card {
+  position: relative;
+  width: min(100%, 24rem);
+  padding: 1.4rem;
+  border-radius: 1.25rem;
+  background: var(--card-bg);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.share-dialog-card h2 {
+  font-family: var(--font-display);
+}
+
+.share-dialog-card img {
+  width: min(100%, 18rem);
+  margin: 1rem auto;
+  border-radius: 0.75rem;
+}
+
+.share-dialog-card input {
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.share-dialog-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.7rem;
+  border: 0;
+  background: transparent;
+  color: var(--text-light);
+  cursor: pointer;
+  font-size: 1.5rem;
+}
+
+.share-dialog-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-top: 0.8rem;
+}
+
+.share-dialog-actions .scan-button {
+  padding: 0.75rem;
+}
+
+.saved-menu-header {
+  margin: 1rem 0 1.25rem;
+}
+
+.saved-menu-header h1 {
+  font-family: var(--font-display);
+}
+
+.saved-menus-title {
+  margin-bottom: 1rem;
+}
+
+.saved-menu-summary,
+.saved-menu-actions {
+  display: flex;
+}
+
+.saved-menu-summary {
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.saved-menu-actions {
+  gap: 0.5rem;
+}
+
+.saved-menu-actions svg {
+  width: 20px;
+  height: 20px;
+}
+
+.saved-menu-actions [data-variant='danger'] {
+  color: #dc2626;
+}
+
+.saved-menu-preview {
+  margin-top: 0.5rem;
+  color: var(--text-light);
+  font-size: 0.75rem;
+}
+
 /* ---------- Camera Capture ---------- */
 .camera-section {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.privacy-note {
+  color: var(--text-light);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  text-align: center;
 }
 
 .capture-button {

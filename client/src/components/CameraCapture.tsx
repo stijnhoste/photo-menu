@@ -109,6 +109,9 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
           </button>
         </>
       )}
+      <p className="privacy-note">
+        Menu photos are sent securely to our AI provider for analysis and are not stored by this app. Always confirm allergen information with restaurant staff.
+      </p>
     </div>
   );
 }

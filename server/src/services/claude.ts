@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { compactMenuSchema, expandCompactMenu } from '../domain/compactMenu.js';
+import { compactMenuSchema, expandCompactMenu, mergeExtractedMenus } from '../domain/compactMenu.js';
 import type { ExtractedMenu } from '../domain/menu.js';
 
 // Keep interactive language features on the richer model, but use Anthropic's
@@ -53,7 +53,8 @@ export async function extractMenuDishes(images: string[]): Promise<ExtractedMenu
     };
   });
 
-  const response = await getClient().messages.create({
+  const requestRegion = async (scope: string) => {
+    const response = await getClient().messages.create({
     model: CLAUDE_EXTRACTION_MODEL,
     max_tokens: 8_192,
     messages: [
@@ -63,37 +64,48 @@ export async function extractMenuDishes(images: string[]): Promise<ExtractedMenu
           ...imageBlocks,
           {
             type: 'text',
-            text: `Extract every printed menu item accurately and concisely. Return only valid JSON, without markdown, in this exact compact shape:
+            text: `Extract every printed menu item ${scope} accurately and concisely. Return only valid JSON, without markdown, in this exact compact shape:
 {"restaurantName":string|null,"menuName":string|null,"currency":string|null,"sourceLanguage":string|null,"categories":[string],"items":[[exactItemName,printedPriceOrNull,zeroBasedCategoryIndex]]}
 
-Put section names in categories in visual source order. Preserve visual reading order. Do not invent prices or missing text. For multiple sizes, keep the base item with its first/lowest price.`,
+Put section names in categories in visual source order. Preserve top-to-bottom visual reading order. Do not invent prices or missing text. For multiple sizes, keep the base item with its first/lowest price. Return an empty items array when the specified region contains no items.`,
           },
         ],
       },
     ],
   });
 
-  console.log(JSON.stringify({
-    type: 'claude_extraction',
-    model: response.model,
-    stopReason: response.stop_reason,
-    inputTokens: response.usage.input_tokens,
-    outputTokens: response.usage.output_tokens,
-  }));
+    console.log(JSON.stringify({
+      type: 'claude_extraction',
+      model: response.model,
+      scope,
+      stopReason: response.stop_reason,
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+    }));
 
-  if (response.stop_reason === 'max_tokens') {
-    throw new Error('Menu extraction exceeded the model output limit');
-  }
-  const textContent = response.content.find(block => block.type === 'text');
-  if (!textContent || textContent.type !== 'text') {
-    throw new Error('Claude returned no menu text');
-  }
+    if (response.stop_reason === 'max_tokens') {
+      throw new Error('Menu extraction exceeded the model output limit');
+    }
+    const textContent = response.content.find(block => block.type === 'text');
+    if (!textContent || textContent.type !== 'text') {
+      throw new Error('Claude returned no menu text');
+    }
 
-  let jsonText = textContent.text.trim();
-  if (jsonText.startsWith('```')) {
-    jsonText = jsonText.replace(/^```json?\s*/i, '').replace(/```\s*$/, '').trim();
+    let jsonText = textContent.text.trim();
+    if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/^```json?\s*/i, '').replace(/```\s*$/, '').trim();
+    }
+    return expandCompactMenu(compactMenuSchema.parse(JSON.parse(jsonText) as unknown));
+  };
+
+  if (images.length === 1) {
+    const [left, right] = await Promise.all([
+      requestRegion('whose item name begins in the left half of the image'),
+      requestRegion('whose item name begins in the right half of the image'),
+    ]);
+    return mergeExtractedMenus([left, right]);
   }
-  return expandCompactMenu(compactMenuSchema.parse(JSON.parse(jsonText) as unknown));
+  return requestRegion('from all supplied images');
 }
 
 export interface TranslatableDish {

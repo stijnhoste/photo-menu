@@ -13,7 +13,7 @@ export const compactMenuSchema = z.object({
     z.string().trim().min(1).max(200).describe('Exact item name'),
     nullableText(30).describe('Price exactly as printed'),
     z.number().int().nonnegative().describe('Zero-based category index'),
-  ])).min(1).max(300),
+  ])).max(300),
 });
 
 export type CompactMenu = z.infer<typeof compactMenuSchema>;
@@ -47,5 +47,36 @@ export function expandCompactMenu(menu: CompactMenu): ExtractedMenu {
         dietaryTags: [],
       };
     }),
+  };
+}
+
+export function mergeExtractedMenus(menus: ExtractedMenu[]): ExtractedMenu {
+  const dishes: ExtractedMenu['dishes'] = [];
+  const categoryOrders = new Map<string, number>();
+  const seen = new Set<string>();
+
+  for (const menu of menus) {
+    for (const dish of menu.dishes) {
+      const key = `${dish.category.toLowerCase()}\u0000${dish.name.toLowerCase()}\u0000${dish.price || ''}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (!categoryOrders.has(dish.category)) categoryOrders.set(dish.category, categoryOrders.size);
+      dishes.push({
+        ...dish,
+        categoryOrder: categoryOrders.get(dish.category)!,
+        itemOrder: dishes.length,
+      });
+    }
+  }
+
+  if (dishes.length === 0) throw new Error('No menu items extracted');
+  const metadata = (field: keyof Omit<ExtractedMenu, 'dishes'>) =>
+    menus.find(menu => menu[field])?.[field] || null;
+  return {
+    restaurantName: metadata('restaurantName'),
+    menuName: metadata('menuName'),
+    currency: metadata('currency'),
+    sourceLanguage: metadata('sourceLanguage'),
+    dishes,
   };
 }

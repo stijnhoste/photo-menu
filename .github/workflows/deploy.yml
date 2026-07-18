@@ -26,6 +26,9 @@ jobs:
       - name: Build check
         run: npm run build
 
+      - name: Smoke test production server
+        run: npm run smoke:production
+
   deploy:
     needs: ci
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -49,11 +52,13 @@ jobs:
             echo "Building..."
             npm run build
             echo "Restarting..."
-            pm2 restart menu-pictures
+            pm2 startOrReload ecosystem.config.cjs --only menu-pictures
             echo "Waiting for app to start..."
             sleep 5
             echo "Verifying deployment..."
-            if curl -sf http://localhost:3005/api/health > /dev/null; then
+            if curl -sf http://localhost:3005/api/health > /dev/null \
+              && curl -sf http://localhost:3005/ | grep -q '<title>menu.pictures</title>'; then
+              pm2 save
               echo "Health check passed!"
               echo "Deployed successfully!"
             else
@@ -61,7 +66,7 @@ jobs:
               git reset --hard $PREVIOUS_COMMIT
               npm ci
               npm run build
-              pm2 restart menu-pictures
+              NODE_ENV=production pm2 restart menu-pictures --update-env
               echo "Rolled back to $PREVIOUS_COMMIT"
               exit 1
             fi

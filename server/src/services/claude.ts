@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { parseExtractedMenu, type ExtractedMenu } from '../domain/menu.js';
+import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import { extractedMenuSchema, parseExtractedMenu, type ExtractedMenu } from '../domain/menu.js';
 
 // Latest Claude model — used for menu extraction, translation, and the menu chat
 export const CLAUDE_MODEL = 'claude-opus-4-8';
@@ -50,9 +51,12 @@ export async function extractMenuDishes(images: string[]): Promise<ExtractedMenu
     };
   });
 
-  const response = await getClient().messages.create({
+  const response = await getClient().messages.parse({
     model: CLAUDE_MODEL,
-    max_tokens: 8192,
+    max_tokens: 16_384,
+    output_config: {
+      format: zodOutputFormat(extractedMenuSchema),
+    },
     messages: [
       {
         role: 'user',
@@ -117,25 +121,22 @@ Extract all items from the menu:`,
     ],
   });
 
-  // Extract text content from response
-  const textContent = response.content.find((block) => block.type === 'text');
-  if (!textContent || textContent.type !== 'text') {
-    throw new Error('No text response from Claude');
+  console.log(JSON.stringify({
+    type: 'claude_extraction',
+    model: response.model,
+    stopReason: response.stop_reason,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+  }));
+
+  if (response.stop_reason === 'max_tokens') {
+    throw new Error('Menu extraction exceeded the model output limit');
+  }
+  if (!response.parsed_output) {
+    throw new Error('Claude returned no structured menu');
   }
 
-  // Parse JSON response
-  try {
-    // Handle potential markdown code blocks in response
-    let jsonText = textContent.text.trim();
-    if (jsonText.startsWith('```')) {
-      jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```$/g, '').trim();
-    }
-
-    return parseExtractedMenu(JSON.parse(jsonText) as unknown);
-  } catch (error) {
-    console.error('Failed to parse Claude response:', textContent.text);
-    throw new Error('Failed to parse menu extraction response');
-  }
+  return parseExtractedMenu(response.parsed_output);
 }
 
 export interface TranslatableDish {
